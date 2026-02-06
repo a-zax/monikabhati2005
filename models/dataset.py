@@ -14,7 +14,8 @@ class ChestXrayDataset(Dataset):
         csv_file, 
         img_dir, 
         transform=None, 
-        tokenizer_name='distilgpt2',
+        enc_tokenizer_name='distilbert-base-uncased',
+        dec_tokenizer_name='distilgpt2',
         max_text_len=256,
         max_indication_len=64
     ):
@@ -24,11 +25,15 @@ class ChestXrayDataset(Dataset):
         self.max_text_len = max_text_len
         self.max_indication_len = max_indication_len
         
-        # Initialize tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-    
+        # Initialize tokenizers
+        # Encoder tokenizer for Clinical Indication (Context)
+        self.enc_tokenizer = AutoTokenizer.from_pretrained(enc_tokenizer_name)
+        
+        # Decoder tokenizer for Report Generation
+        self.dec_tokenizer = AutoTokenizer.from_pretrained(dec_tokenizer_name)
+        if self.dec_tokenizer.pad_token is None:
+            self.dec_tokenizer.pad_token = self.dec_tokenizer.eos_token
+            
     def __len__(self):
         return len(self.data)
     
@@ -42,7 +47,6 @@ class ChestXrayDataset(Dataset):
             image = np.array(image)
         except Exception as e:
             print(f"Error loading image {img_path}: {e}")
-            # Return a blank image or handle error appropriately
             image = np.zeros((224, 224, 3), dtype=np.uint8)
 
         # Apply transforms
@@ -57,8 +61,8 @@ class ChestXrayDataset(Dataset):
         indication_text = sanitize_text(row.get('indication', ''))
         report_text = sanitize_text(row.get('report', ''))
 
-        # Tokenize indication (clinical context)
-        indication = self.tokenizer(
+        # Tokenize indication (Encoder)
+        indication = self.enc_tokenizer(
             indication_text,
             max_length=self.max_indication_len,
             padding='max_length',
@@ -66,8 +70,8 @@ class ChestXrayDataset(Dataset):
             return_tensors='pt'
         )
         
-        # Tokenize target report
-        report = self.tokenizer(
+        # Tokenize report (Decoder)
+        report = self.dec_tokenizer(
             report_text,
             max_length=self.max_text_len,
             padding='max_length',
@@ -75,9 +79,6 @@ class ChestXrayDataset(Dataset):
             return_tensors='pt'
         )
         
-        # For disease labels: Initialize as zeros (will populate later if labels needed)
-        # In a complete implementation, you'd extract these using chexpert-labeler
-        # or load them from the CSV if pre-computed
         disease_labels = torch.zeros(14, dtype=torch.float32)
         
         return {
@@ -96,13 +97,13 @@ def get_transforms(is_train=True, img_size=224):
         return A.Compose([
             A.Resize(img_size, img_size),
             A.HorizontalFlip(p=0.5),
-            A.RandomBrightnessContrast(p=0.2, brightness_limit=0.1, contrast_limit=0.1),
             A.ShiftScaleRotate(
                 shift_limit=0.05, 
                 scale_limit=0.05, 
                 rotate_limit=5, 
                 p=0.3
             ),
+            A.RandomBrightnessContrast(p=0.2, brightness_limit=0.1, contrast_limit=0.1),
             A.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
@@ -123,13 +124,16 @@ class MockChestXrayDataset(Dataset):
     """
     Mock dataset for pipeline verification without real data.
     """
-    def __init__(self, num_samples=100, img_size=224, max_text_len=256):
+    def __init__(self, num_samples=100, img_size=224, 
+                 enc_tokenizer_name='distilbert-base-uncased',
+                 dec_tokenizer_name='distilgpt2'):
         self.num_samples = num_samples
         self.img_size = img_size
-        self.max_text_len = max_text_len
-        self.tokenizer = AutoTokenizer.from_pretrained('distilgpt2')
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+        
+        self.enc_tokenizer = AutoTokenizer.from_pretrained(enc_tokenizer_name)
+        self.dec_tokenizer = AutoTokenizer.from_pretrained(dec_tokenizer_name)
+        if self.dec_tokenizer.pad_token is None:
+            self.dec_tokenizer.pad_token = self.dec_tokenizer.eos_token
             
     def __len__(self):
         return self.num_samples
@@ -143,11 +147,11 @@ class MockChestXrayDataset(Dataset):
         augmented = transform(image=image)
         image = augmented['image']
         
-        # Random inputs
-        indication_ids = torch.randint(0, self.tokenizer.vocab_size, (64,))
+        # Random inputs respecting vocab sizes
+        indication_ids = torch.randint(0, self.enc_tokenizer.vocab_size, (64,))
         indication_mask = torch.ones(64)
         
-        report_ids = torch.randint(0, self.tokenizer.vocab_size, (256,))
+        report_ids = torch.randint(0, self.dec_tokenizer.vocab_size, (256,))
         report_mask = torch.ones(256)
         
         disease_labels = torch.zeros(14, dtype=torch.float32)

@@ -126,8 +126,18 @@ def main(args):
     if args.use_mock:
         print("WARNING: Using Mock Dataset for verification!")
         from models.dataset import MockChestXrayDataset
-        train_dataset = MockChestXrayDataset(num_samples=100, img_size=args.img_size)
-        val_dataset = MockChestXrayDataset(num_samples=20, img_size=args.img_size)
+        train_dataset = MockChestXrayDataset(
+            num_samples=100, 
+            img_size=args.img_size,
+            enc_tokenizer_name=args.text_encoder,
+            dec_tokenizer_name=args.decoder
+        )
+        val_dataset = MockChestXrayDataset(
+            num_samples=20, 
+            img_size=args.img_size,
+            enc_tokenizer_name=args.text_encoder,
+            dec_tokenizer_name=args.decoder
+        )
     else:
         # Adjust paths relative to project root or use provided args
         data_root = Path(args.data_dir)
@@ -143,6 +153,8 @@ def main(args):
             csv_file=data_root / 'processed/train.csv',
             img_dir=data_root / 'raw/iu_xray/images',
             transform=get_transforms(is_train=True, img_size=args.img_size),
+            enc_tokenizer_name=args.text_encoder,
+            dec_tokenizer_name=args.decoder,
             max_text_len=args.max_text_len
         )
         
@@ -150,6 +162,8 @@ def main(args):
             csv_file=data_root / 'processed/val.csv',
             img_dir=data_root / 'raw/iu_xray/images',
             transform=get_transforms(is_train=False, img_size=args.img_size),
+            enc_tokenizer_name=args.text_encoder,
+            dec_tokenizer_name=args.decoder,
             max_text_len=args.max_text_len
         )
     
@@ -261,7 +275,6 @@ if __name__ == "__main__":
     parser.add_argument('--decoder', type=str, default='distilgpt2')
     parser.add_argument('--img_size', type=int, default=224)
     parser.add_argument('--max_text_len', type=int, default=256)
-    parser.add_argument('--use_mock', action='store_true', help='Use mock data for verification')
     
     # Training
     parser.add_argument('--batch_size', type=int, default=8)
@@ -270,6 +283,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--weight_decay', type=float, default=0.01)
     parser.add_argument('--num_workers', type=int, default=4)
+    parser.add_argument('--use_mock', action='store_true', help='Use mock data for verification')
     
     args = parser.parse_args()
     main(args)

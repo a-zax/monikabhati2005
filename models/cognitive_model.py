@@ -45,7 +45,10 @@ class CognitiveReportGenerator(nn.Module):
         self.disease_proj = nn.Linear(num_diseases, hidden_dim)
         
         # Report decoder
-        self.decoder = GPT2LMHeadModel.from_pretrained(decoder_name)
+        self.decoder = GPT2LMHeadModel.from_pretrained(
+            decoder_name,
+            add_cross_attention=True
+        )
         # Enable gradient checkpointing for memory efficiency
         self.decoder.gradient_checkpointing_enable()
         
