@@ -1,0 +1,163 @@
+import torch
+from torch.utils.data import Dataset
+import pandas as pd
+import numpy as np
+from PIL import Image
+from pathlib import Path
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+from transformers import AutoTokenizer
+
+class ChestXrayDataset(Dataset):
+    def __init__(
+        self, 
+        csv_file, 
+        img_dir, 
+        transform=None, 
+        tokenizer_name='distilgpt2',
+        max_text_len=256,
+        max_indication_len=64
+    ):
+        self.data = pd.read_csv(csv_file)
+        self.img_dir = Path(img_dir)
+        self.transform = transform
+        self.max_text_len = max_text_len
+        self.max_indication_len = max_indication_len
+        
+        # Initialize tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        row = self.data.iloc[idx]
+        
+        # Load image
+        img_path = self.img_dir / row['filename']
+        try:
+            image = Image.open(img_path).convert('RGB')
+            image = np.array(image)
+        except Exception as e:
+            print(f"Error loading image {img_path}: {e}")
+            # Return a blank image or handle error appropriately
+            image = np.zeros((224, 224, 3), dtype=np.uint8)
+
+        # Apply transforms
+        if self.transform:
+            augmented = self.transform(image=image)
+            image = augmented['image']
+        
+        # Helper for handling NaN/empty strings
+        def sanitize_text(text):
+            return str(text) if pd.notna(text) else ""
+
+        indication_text = sanitize_text(row.get('indication', ''))
+        report_text = sanitize_text(row.get('report', ''))
+
+        # Tokenize indication (clinical context)
+        indication = self.tokenizer(
+            indication_text,
+            max_length=self.max_indication_len,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+        
+        # Tokenize target report
+        report = self.tokenizer(
+            report_text,
+            max_length=self.max_text_len,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+        
+        # For disease labels: Initialize as zeros (will populate later if labels needed)
+        # In a complete implementation, you'd extract these using chexpert-labeler
+        # or load them from the CSV if pre-computed
+        disease_labels = torch.zeros(14, dtype=torch.float32)
+        
+        return {
+            'image': image,
+            'indication_ids': indication['input_ids'].squeeze(0),
+            'indication_mask': indication['attention_mask'].squeeze(0),
+            'report_ids': report['input_ids'].squeeze(0),
+            'report_mask': report['attention_mask'].squeeze(0),
+            'disease_labels': disease_labels,
+            'filename': row['filename']
+        }
+
+# Define transforms
+def get_transforms(is_train=True, img_size=224):
+    if is_train:
+        return A.Compose([
+            A.Resize(img_size, img_size),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2, brightness_limit=0.1, contrast_limit=0.1),
+            A.ShiftScaleRotate(
+                shift_limit=0.05, 
+                scale_limit=0.05, 
+                rotate_limit=5, 
+                p=0.3
+            ),
+            A.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            ),
+            ToTensorV2()
+        ])
+    else:
+        return A.Compose([
+            A.Resize(img_size, img_size),
+            A.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            ),
+            ToTensorV2()
+        ])
+
+class MockChestXrayDataset(Dataset):
+    """
+    Mock dataset for pipeline verification without real data.
+    """
+    def __init__(self, num_samples=100, img_size=224, max_text_len=256):
+        self.num_samples = num_samples
+        self.img_size = img_size
+        self.max_text_len = max_text_len
+        self.tokenizer = AutoTokenizer.from_pretrained('distilgpt2')
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            
+    def __len__(self):
+        return self.num_samples
+    
+    def __getitem__(self, idx):
+        # Random image
+        image = np.random.randint(0, 255, (self.img_size, self.img_size, 3), dtype=np.uint8)
+        
+        # Apply transform (normalize)
+        transform = get_transforms(is_train=True, img_size=self.img_size)
+        augmented = transform(image=image)
+        image = augmented['image']
+        
+        # Random inputs
+        indication_ids = torch.randint(0, self.tokenizer.vocab_size, (64,))
+        indication_mask = torch.ones(64)
+        
+        report_ids = torch.randint(0, self.tokenizer.vocab_size, (256,))
+        report_mask = torch.ones(256)
+        
+        disease_labels = torch.zeros(14, dtype=torch.float32)
+        
+        return {
+            'image': image,
+            'indication_ids': indication_ids,
+            'indication_mask': indication_mask,
+            'report_ids': report_ids,
+            'report_mask': report_mask,
+            'disease_labels': disease_labels,
+            'filename': f'mock_{idx}.png'
+        }
