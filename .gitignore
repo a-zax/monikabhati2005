@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+venv/
+env/
+.env
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Data & weights
+data/raw/
+*.pth
+*.pt
+*.ckpt
+*.h5
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
