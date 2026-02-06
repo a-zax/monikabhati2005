@@ -21,6 +21,8 @@ class ChestXrayDataset(Dataset):
     ):
         self.data = pd.read_csv(csv_file)
         self.img_dir = Path(img_dir)
+        if (self.img_dir / 'images_normalized').exists():
+            self.img_dir = self.img_dir / 'images_normalized'
         self.transform = transform
         self.max_text_len = max_text_len
         self.max_indication_len = max_indication_len

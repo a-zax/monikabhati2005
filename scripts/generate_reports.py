@@ -17,7 +17,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from models.cognitive_model import CognitiveReportGenerator
 from models.dataset import get_transforms
 
-def generate_report(model, image_path, tokenizer, device, max_length=256):
+def generate_report(model, image_path, enc_tokenizer, dec_tokenizer, device, max_length=256):
     model.eval()
     
     # Load and preprocess image
@@ -35,7 +35,7 @@ def generate_report(model, image_path, tokenizer, device, max_length=256):
     # Dummy indication (clinical context)
     # in a real app, user would provide this
     indication_text = "Clinical indication: Chest pain."
-    indication = tokenizer(
+    indication = enc_tokenizer(
         indication_text,
         max_length=64,
         padding='max_length',
@@ -53,7 +53,7 @@ def generate_report(model, image_path, tokenizer, device, max_length=256):
             max_length=max_length
         )
         
-        report = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
+        report = dec_tokenizer.decode(generated_ids[0], skip_special_tokens=True)
         
         # Format disease probabilities
         diseases = [
@@ -83,13 +83,15 @@ def main(args):
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     
-    tokenizer = AutoTokenizer.from_pretrained(args.decoder)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+    enc_tokenizer = AutoTokenizer.from_pretrained(args.text_encoder)
+    dec_tokenizer = AutoTokenizer.from_pretrained(args.decoder)
+    
+    if dec_tokenizer.pad_token is None:
+        dec_tokenizer.pad_token = dec_tokenizer.eos_token
         
     # Generate
     print(f"Generating report for {args.image}...")
-    report, disease_probs = generate_report(model, args.image, tokenizer, device)
+    report, disease_probs = generate_report(model, args.image, enc_tokenizer, dec_tokenizer, device)
     
     print("\n" + "="*50)
     print("GENERATED REPORT")
