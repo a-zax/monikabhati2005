@@ -9,7 +9,24 @@ import transformers
 # Silence warnings
 transformers.logging.set_verbosity_error()
 
-# ... imports ...
+import torch
+from torch.utils.data import DataLoader
+from pathlib import Path
+import argparse
+import json
+import sys
+import numpy as np
+from tqdm import tqdm
+from transformers import AutoTokenizer
+from sklearn.metrics import f1_score
+from nltk.translate.bleu_score import corpus_bleu
+import os
+
+# Ensure we can import from parent
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from models.cognitive_model import CognitiveReportGenerator
+from models.dataset import ChestXrayDataset, get_transforms
 
 def evaluate_all(model, dataloader, tokenizer, device):
     """
