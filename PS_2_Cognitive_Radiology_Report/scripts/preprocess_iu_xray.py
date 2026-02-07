@@ -29,6 +29,13 @@ def main():
     project_root = script_path.parent.parent
     
     data_dir = project_root / 'data' / 'raw' / 'iu_xray'
+    
+    # Kaggle Compatibility: Look for data in /kaggle/input if local raw folder is empty
+    kaggle_path = Path('/kaggle/input/chest-xrays-indiana-university')
+    if not (data_dir / 'indiana_projections.csv').exists() and kaggle_path.exists():
+        print(f"Kaggle detected. Using data from {kaggle_path}")
+        data_dir = kaggle_path
+
     out_dir = project_root / 'data' / 'processed'
     out_dir.mkdir(exist_ok=True, parents=True)
     
@@ -39,7 +46,7 @@ def main():
     # Check if data exists
     if not (data_dir / 'indiana_projections.csv').exists():
         print(f"Error: Data not found in {data_dir}")
-        print("Please download the IU-Xray dataset first.")
+        print("Please download the IU-Xray dataset or 'Add Data' in Kaggle.")
         return
 
     # Load data

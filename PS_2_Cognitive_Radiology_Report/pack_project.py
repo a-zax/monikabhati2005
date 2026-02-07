@@ -5,7 +5,7 @@ from pathlib import Path
 def zip_project(output_filename="project_codebase.zip"):
     # Folders and files to include
     include_dirs = ["models", "training", "evaluation", "scripts", "configs"]
-    include_files = ["requirements.txt", "README.md", "submission.txt"]
+    include_files = ["requirements.txt", "README.md", "submission.txt", "Run_on_Colab.ipynb", "Run_on_Kaggle.ipynb"]
     
     with zipfile.ZipFile(output_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for item in include_dirs:

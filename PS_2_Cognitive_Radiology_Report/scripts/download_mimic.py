@@ -5,6 +5,17 @@ from pathlib import Path
 
 def main():
     print("Downloading MIMIC-CXR dataset using kagglehub...")
+    # Kaggle Compatibility
+    kaggle_paths = [
+        Path('/kaggle/input/mimic-cxr-dataset'),
+        Path('/kaggle/input/mimic-cxr-jpg-chest-x-ray-with-structured-reports')
+    ]
+    for kp in kaggle_paths:
+        if kp.exists():
+            print(f"Kaggle detected. MIMIC-CXR already available at {kp}")
+            print("Skipping download/copy to save space.")
+            return
+
     # Download dataset
     try:
         path = kagglehub.dataset_download("simhadrisadaram/mimic-cxr-dataset")

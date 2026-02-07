@@ -148,9 +148,23 @@ def main(args):
         if dataset_name == 'mimic_cxr':
             processed_dir = data_root / 'processed_mimic'
             img_dir = data_root / 'raw/mimic_cxr' # Adjust if nested
+            
+            # Kaggle override
+            if not processed_dir.exists() and Path('/kaggle/input').exists():
+                print("Kaggle detected. Please ensure you have run preprocessing first.")
         else:
             processed_dir = data_root / 'processed'
             img_dir = data_root / 'raw/iu_xray/images'
+
+        # Special check: If we are in Kaggle and processed data is missing, we still need to run preprocessing.
+        # But images can be pointed to /kaggle/input
+        if not img_dir.exists() and Path('/kaggle/input').exists():
+             kaggle_iu = Path('/kaggle/input/chest-xrays-indiana-university')
+             kaggle_mimic = Path('/kaggle/input/mimic-cxr-dataset')
+             if dataset_name == 'mimic_cxr' and kaggle_mimic.exists():
+                 img_dir = kaggle_mimic
+             elif dataset_name == 'iu_xray' and kaggle_iu.exists():
+                 img_dir = kaggle_iu
 
         train_csv = processed_dir / 'train.csv'
         val_csv = processed_dir / 'val.csv'

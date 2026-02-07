@@ -20,6 +20,19 @@ def main():
     # Adjust input path to where kagglehub likely dumped it or where we moved it
     # We moved it to data/raw/mimic_cxr
     data_dir = project_root / 'data' / 'raw' / 'mimic_cxr'
+    
+    # Kaggle Compatibility: Look for data in /kaggle/input if local raw folder is empty
+    kaggle_paths = [
+        Path('/kaggle/input/mimic-cxr-dataset'),
+        Path('/kaggle/input/mimic-cxr-jpg-chest-x-ray-with-structured-reports') # Alternative common name
+    ]
+    if not any(data_dir.glob('*.csv')):
+        for kp in kaggle_paths:
+            if kp.exists():
+                print(f"Kaggle detected. Using data from {kp}")
+                data_dir = kp
+                break
+
     out_dir = project_root / 'data' / 'processed_mimic'
     out_dir.mkdir(exist_ok=True, parents=True)
     

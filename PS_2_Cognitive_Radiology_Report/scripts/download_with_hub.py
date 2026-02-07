@@ -5,6 +5,13 @@ from pathlib import Path
 
 def main():
     print("Downloading dataset using kagglehub...")
+    # Kaggle Compatibility
+    kaggle_path = Path('/kaggle/input/chest-xrays-indiana-university')
+    if kaggle_path.exists():
+        print(f"Kaggle detected. IU-Xray already available at {kaggle_path}")
+        print("Skipping download/copy to save space.")
+        return
+
     # Download latest version
     try:
         path = kagglehub.dataset_download("raddar/chest-xrays-indiana-university")
