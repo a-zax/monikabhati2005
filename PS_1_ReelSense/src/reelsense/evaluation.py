@@ -1,6 +1,6 @@
 """
-ReelSense Part 4: Evaluation Metrics
-Comprehensive evaluation for ranking, diversity, and novelty
+Evaluation metrics module for ReelSense.
+Comprehensive evaluation for ranking, diversity, and novelty.
 """
 
 import pandas as pd
@@ -14,9 +14,7 @@ class RecommenderEvaluator:
     def __init__(self):
         self.metrics = {}
     
-    # ========================================================================
     # RANKING METRICS
-    # ========================================================================
     
     def precision_at_k(self, recommended, relevant, k=10):
         recommended_k = recommended[:k]
@@ -64,9 +62,8 @@ class RecommenderEvaluator:
                 score += num_hits / (i + 1.0)
         return score / min(len(relevant_set), k)
     
-    # ========================================================================
+
     # DIVERSITY METRICS
-    # ========================================================================
     
     def catalog_coverage(self, all_recommendations, total_items):
         """Percentage of catalog covered by recommendations"""
@@ -127,22 +124,12 @@ class RecommenderEvaluator:
                 genres_set.update(gs)
                 total_genres += len(gs)
         
-        # Simple metric: number of unique genres / total number of genre slots (k * avg_genres/movie?)
-        # Or just number of unique genres.
-        # Let's normalize by total number of possible genres found in these movies? 
-        # A simple interpretable metric is difficult without a baseline.
-        # Let's return just count of unique genres for now, normalized by k maybe? 
-        # Actually in main result reporting we often just want a score [0,1].
-        # Let's use simple unique_genres / total_unique_genres_in_catalog (approximation)
-        # OR: unique_genres / k (if max 1 genre per movie). 
-        # Let's just return normalized count: unique genres / total genre occurrences
         if total_genres == 0:
             return 0.0
         return len(genres_set) / total_genres
 
-    # ========================================================================
+    
     # NOVELTY METRICS
-    # ========================================================================
     
     def novelty_score(self, recommendations, item_popularity):
         """Average novelty (inverse popularity) of recommendations"""
@@ -170,29 +157,20 @@ class RecommenderEvaluator:
         """Percentage of recommendations from long-tail (items with <= percentile popularity)"""
         if not item_popularity: return 0.0
         
-        threshold = np.percentile(list(item_popularity.values()), 100 - percentile) # Bottom 80% means popularity < 20th percentile of top? 
-        # Usually long tail = items that are NOT in the top head.
-        # If we sort by popularity descending. Head = top X%. Tail = rest.
-        # Let's say long tail is bottom 80% of ITEMS (not ratings).
-        
-        # Simple approach: items with fewer ratings than the 80th percentile item?
-        # No, usually "long tail" means items that are NOT popular.
-        # Let's define it as items in the bottom 80% of popularity distribution.
-        
+        # Calculate threshold relative to values, not counts?
+        # Usually long tail defined by top 20% items accounting for 80% volume?
+        # Here we do simple percentile cut.
         pop_values = list(item_popularity.values())
-        threshold_val = np.percentile(pop_values, percentile) # This gives score below which X% of data falls.
-        # if percentile=80, it gives the value below which 80% of items fall.
+        threshold_val = np.percentile(pop_values, percentile) 
         
         long_tail_count = sum(1 for item in recommendations if item_popularity.get(item, 0) <= threshold_val)
         
         return long_tail_count / len(recommendations) if len(recommendations) > 0 else 0.0
     
-    # ========================================================================
     # EVALUATION PIPELINE
-    # ========================================================================
     
     def evaluate_multiple_users(self, user_recommendations, user_relevance, 
-                               movie_features, movies_df, item_popularity, total_items, k=10):
+                                movie_features, movies_df, item_popularity, total_items, k=10):
         """
         Evaluate for multiple users and aggregate results
         """
@@ -239,8 +217,13 @@ class RecommenderEvaluator:
         
     def print_evaluation_summary(self, results_df):
         """Print formatted summary"""
-        avg_row = results_df[results_df['user_id'] == 'AVERAGE'].iloc[0]
-        
+        try:
+            avg_row = results_df[results_df['user_id'] == 'AVERAGE'].iloc[0]
+        except IndexError:
+            # Handle empty results
+            print("No evaluation results to summarize.")
+            return
+
         print("\n" + "="*50)
         print("EVALUATION SUMMARY")
         print("="*50)
@@ -268,10 +251,10 @@ def compare_models(evaluator, models_results):
     for metric in metrics:
         values = []
         for res_df in models_results.values():
-            val = res_df[res_df['user_id'] == 'AVERAGE'].iloc[0].get(metric, 0)
-            values.append(f"{val:.4f}")
+            try:
+                val = res_df[res_df['user_id'] == 'AVERAGE'].iloc[0].get(metric, 0)
+                values.append(f"{val:.4f}")
+            except:
+                values.append("N/A")
         
         print(f"{metric:<25} | " + " | ".join([f"{v:<15}" for v in values]))
-
-if __name__ == "__main__":
-    print("ReelSense Part 4: Evaluation Module")
