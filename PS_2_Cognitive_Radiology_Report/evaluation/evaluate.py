@@ -37,12 +37,45 @@ def evaluate_all(model, dataloader, tokenizer, device):
                 )
             
             # Decode generated reports
-            # ...
-
-# ...
-
+            for i in range(len(generated_ids)):
+                gen_text = tokenizer.decode(
+                    generated_ids[i], 
+                    skip_special_tokens=True
+                )
+                ref_text = tokenizer.decode(
+                    batch['report_ids'][i], 
+                    skip_special_tokens=True
+                )
+                
+                generated_reports.append(gen_text)
+                reference_reports.append(ref_text)
+    
     # Load tokenizer (same as used in training/dataset)
-    tokenizer = AutoTokenizer.from_pretrained(args.decoder)
+    # Re-loading tokenizer here is redundant if passed in, but the original code had it.
+    # Actually, let's just use the passed tokenizer if we don't need to rebuild it.
+    # The original code structure had evaluate_all separated.
+    # Let's fix the structure properly.
+    
+    # 2. BLEU-4
+    # NLTK expects list of list of tokens for refs, list of tokens for hyp
+    print("Calculating BLEU-4...")
+    references = [[ref.split()] for ref in reference_reports]
+    hypotheses = [gen.split() for gen in generated_reports]
+    
+    try:
+        bleu4 = corpus_bleu(references, hypotheses, weights=(0.25, 0.25, 0.25, 0.25))
+    except Exception as e:
+        print(f"Error calculating BLEU: {e}")
+        bleu4 = 0.0
+    
+    results = {
+        'bleu4': bleu4,
+        'num_samples': len(generated_reports)
+    }
+    
+    return results, generated_reports, reference_reports
+
+def main(args):
     
     # CRITICAL: For generation with decoder-only models (GPT), padding should be on the LEFT
     # otherwise generated tokens might be overwritten or attention might be wrong.
@@ -51,7 +84,7 @@ def evaluate_all(model, dataloader, tokenizer, device):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
             
-            # Decode generated reports
+            # Decode generated  reports
         for i in range(len(generated_ids)):
             gen_text = tokenizer.decode(
                 generated_ids[i], 
