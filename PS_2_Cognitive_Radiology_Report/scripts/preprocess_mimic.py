@@ -76,12 +76,13 @@ def main():
     
     rename_map = {}
     if 'dicom_id' in df.columns: rename_map['dicom_id'] = 'filename_base'
-    # Some datasets use 'image_id'
+    # Fixed: Adding 'image' as a potential ID column
+    elif 'image' in df.columns: rename_map['image'] = 'filename_base'
     elif 'image_id' in df.columns: rename_map['image_id'] = 'filename_base'
-    # Fallback: check formatted columns
     elif 'id' in df.columns: rename_map['id'] = 'filename_base'
 
     if 'text' in df.columns: rename_map['text'] = 'report'
+    elif 'text_augment' in df.columns: rename_map['text_augment'] = 'report'
     
     df.rename(columns=rename_map, inplace=True)
     
@@ -179,8 +180,29 @@ def main():
         df['indication'] = "Chest X-ray."
         
     # Filter ViewPosition
+    print(f"Rows before view filtering: {len(df)}")
     if 'ViewPosition' in df.columns:
+        print(f"Unique ViewPosition values: {df['ViewPosition'].unique()}")
         df = df[df['ViewPosition'].isin(['PA', 'AP'])].copy()
+    elif 'view' in df.columns:
+        # User dataset has 'view' column with list-like strings e.g. "['PA', 'LATERAL']"
+        print("Detected 'view' column. Filtering based on content...")
+        
+        # Accepted views
+        accepted_views = {'PA', 'AP', 'FRONTAL', 'POSTEROANTERIOR', 'ANTEROPOSTERIOR'}
+        
+        def is_valid_view(val):
+            # Normalize
+            s_val = str(val).upper()
+            # aggressive check: if any accepted view substring is present
+            for v in accepted_views:
+                if v in s_val:
+                    return True
+            return False
+            
+        df = df[df['view'].apply(is_valid_view)].copy()
+        
+    print(f"Rows after view filtering: {len(df)}")
 
     # Select and save
     keep_cols = ['filename', 'indication', 'report', 'subject_id']
@@ -188,16 +210,22 @@ def main():
     keep_cols = [c for c in keep_cols if c in df.columns]
     
     df = df[keep_cols]
+    print(f"Rows before split: {len(df)}")
     
     # Split
     # Split by patient (subject_id) to avoid leakage
     patients = df['subject_id'].unique()
-    train_pts, temp_pts = train_test_split(patients, test_size=0.2, random_state=42)
-    val_pts, test_pts = train_test_split(temp_pts, test_size=0.5, random_state=42)
-    
-    train_df = df[df['subject_id'].isin(set(train_pts))]
-    val_df = df[df['subject_id'].isin(set(val_pts))]
-    test_df = df[df['subject_id'].isin(set(test_pts))]
+    if len(patients) < 5:
+        print(f"CRITICAL: Too few patients ({len(patients)}) for split. Using fallback simple split.")
+        train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
+        val_df = test_df
+    else:
+        train_pts, temp_pts = train_test_split(patients, test_size=0.2, random_state=42)
+        val_pts, test_pts = train_test_split(temp_pts, test_size=0.5, random_state=42)
+        
+        train_df = df[df['subject_id'].isin(set(train_pts))]
+        val_df = df[df['subject_id'].isin(set(val_pts))]
+        test_df = df[df['subject_id'].isin(set(test_pts))]
     
     train_df.to_csv(out_dir / 'train.csv', index=False)
     val_df.to_csv(out_dir / 'val.csv', index=False)
