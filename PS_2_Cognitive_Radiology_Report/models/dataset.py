@@ -51,6 +51,10 @@ class ChestXrayDataset(Dataset):
         img_path = self.img_dir / row['filename']
         try:
             image = Image.open(img_path).convert('RGB')
+            # Optimization: Resize to a smaller size before converting to numpy 
+            # to avoid large memory allocations for high-res images
+            if max(image.size) > 512:
+                image.thumbnail((512, 512), Image.Resampling.LANCZOS)
             image = np.array(image)
         except Exception as e:
             print(f"Error loading image {img_path}: {e}")
