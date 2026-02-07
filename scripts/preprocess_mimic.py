@@ -66,11 +66,69 @@ def main():
     
     df.rename(columns=rename_map, inplace=True)
     
-    # Ensure filename has extension
+    # Map 'dicom_id' to 'filename' (usually needs .jpg appended)
+    # CRITICAL: MIMIC-CXR images are often nested (files/p10/p100.../view.jpg)
+    # We need to map the ID to the ACTUAL relative path.
+    
+    print("Mapping image paths (this may take a minute)...")
+    image_map = {}
+    # Walk through the data dir to find all images
+    # Supports jpg, png, dcm
+    for root, dirs, files in os.walk(data_dir):
+        for file in files:
+            if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+                # Key: filename without extension (often dicom_id)
+                key = Path(file).stem
+                # Value: Relative path from data_dir
+                rel_path = Path(root) / file
+                rel_path = rel_path.relative_to(data_dir)
+                image_map[key] = str(rel_path)
+    
+    print(f"Found {len(image_map)} images.")
+    
+    def get_rel_path(row):
+        # file_id could be in 'dicom_id', 'image_id', or 'filename_base'
+        # We renamed to 'filename_base' or 'filename' above or below?
+        # The rename happens *before* this hook.
+        
+        # Check potential ID columns
+        candidates = [row.get('filename_base'), row.get('dicom_id'), row.get('image_id'), row.get('subject_id')]
+        
+        for cand in candidates:
+            if pd.notna(cand):
+                s_cand = str(cand)
+                # Try exact match
+                if s_cand in image_map:
+                    return image_map[s_cand]
+                # Try with .jpg
+                if s_cand.replace('.jpg','') in image_map:
+                    return image_map[s_cand.replace('.jpg','')]
+                    
+        return None
+
+    # Apply mapping
+    # We need to ensure we have a column to map from.
+    # The previous rename block:
+    # if 'dicom_id' in df.columns: rename_map['dicom_id'] = 'filename_base'
+    # df.rename...
+    
+    # So we look at 'filename_base'
     if 'filename_base' in df.columns:
-        df['filename'] = df['filename_base'].astype(str) + '.jpg'
+        df['filename'] = df.apply(get_rel_path, axis=1)
     elif 'image_id' in df.columns:
-        df['filename'] = df['image_id'].astype(str) + '.jpg'
+         df['filename'] = df.apply(lambda x: image_map.get(str(x['image_id']), None), axis=1)
+    
+    # Drop rows where image not found
+    len_before = len(df)
+    df = df.dropna(subset=['filename'])
+    print(f"Matched {len(df)}/{len_before} images.")
+    if len(df) == 0:
+        print("WARNING: No images matched! Checking first 5 map keys vs ids...")
+        print(f"Map keys: {list(image_map.keys())[:5]}")
+        print(f"IDs: {df['filename_base'].head().tolist() if 'filename_base' in df.columns else 'N/A'}")
+        
+    # Standardize columns
+    # We need: 'filename', 'indication', 'report'
     
     # Ensure attributes exist
     if 'report' not in df.columns:
