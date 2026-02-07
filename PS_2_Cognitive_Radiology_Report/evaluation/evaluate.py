@@ -118,9 +118,22 @@ def main(args):
     if args.dataset == 'mimic_cxr':
         processed_dir = data_root / 'processed_mimic'
         img_dir = data_root / 'raw/mimic_cxr'
+        
+        # Kaggle Override for MIMIC
+        kaggle_mimic = Path('/kaggle/input/mimic-cxr-dataset')
+        if not img_dir.exists() and kaggle_mimic.exists():
+            print(f"Kaggle detected. using MIMIC data from {kaggle_mimic}")
+            img_dir = kaggle_mimic
+            
     else:
         processed_dir = data_root / 'processed'
         img_dir = data_root / 'raw/iu_xray/images'
+        
+        # Kaggle Override for IU-Xray
+        kaggle_iu = Path('/kaggle/input/chest-xrays-indiana-university')
+        if not img_dir.exists() and kaggle_iu.exists():
+            print(f"Kaggle detected. using IU-Xray data from {kaggle_iu}")
+            img_dir = kaggle_iu
         
     test_csv = processed_dir / 'test.csv'
     if not test_csv.exists():

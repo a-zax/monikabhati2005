@@ -221,14 +221,29 @@ def main(args):
     )
     
     # Mixed precision scaler
+    # Mixed precision scaler
     scaler = GradScaler()
     
-    # Training loop
+    # Resume from checkpoint
+    start_epoch = 1
     best_val_loss = float('inf')
     history = []
     
+    if args.resume:
+        if os.path.isfile(args.resume):
+            print(f"Loading checkpoint '{args.resume}'")
+            checkpoint = torch.load(args.resume, map_location=device)
+            start_epoch = checkpoint['epoch'] + 1
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            best_val_loss = checkpoint.get('val_loss', float('inf'))
+            print(f"Resuming from epoch {start_epoch}")
+        else:
+            print(f"No checkpoint found at '{args.resume}'")
+    
+    # Training loop
     print("\nStarting training...")
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(start_epoch, args.epochs + 1):
         print(f"\n{'='*50}")
         print(f"Epoch {epoch}/{args.epochs}")
         print(f"{'='*50}")
@@ -311,6 +326,8 @@ if __name__ == "__main__":
     parser.add_argument('--weight_decay', type=float, default=0.01)
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--use_mock', action='store_true', help='Use mock data for verification')
+    
+    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume from')
     
     args = parser.parse_args()
     main(args)

@@ -26,10 +26,19 @@ class ChestXrayDataset(Dataset):
         if not self.img_dir.exists() or not any(self.img_dir.iterdir()):
              kaggle_iu = Path('/kaggle/input/chest-xrays-indiana-university')
              kaggle_mimic = Path('/kaggle/input/mimic-cxr-dataset')
-             if kaggle_iu.exists(): 
-                 self.img_dir = kaggle_iu
-             elif kaggle_mimic.exists():
-                 self.img_dir = kaggle_mimic
+             
+             # Try to be smart: Check which one actually has files?
+             # Or just check if the path being requested looks like one or the other?
+             # Since we can't easily know, we trust the Caller (train.py/evaluate.py) to pass the right one.
+             # This fallback is a last resort.
+             if kaggle_iu.exists() and any(kaggle_iu.iterdir()): 
+                 # Only default to IU if we aren't clearly looking for MIMIC
+                 if 'mimic' not in str(self.img_dir).lower():
+                    self.img_dir = kaggle_iu
+             
+             if kaggle_mimic.exists() and any(kaggle_mimic.iterdir()):
+                 if 'mimic' in str(self.img_dir).lower() or not kaggle_iu.exists():
+                    self.img_dir = kaggle_mimic
 
         if (self.img_dir / 'images_normalized').exists():
             self.img_dir = self.img_dir / 'images_normalized' # IU-Xray
