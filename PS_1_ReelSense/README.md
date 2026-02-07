@@ -22,31 +22,23 @@ ReelSense is a comprehensive movie recommendation system that goes beyond tradit
 
 ```
 reelsense/
-├── reelsense_main.py              # Main execution script
-├── reelsense_part1_data.py        # Data loading, EDA, feature engineering
-├── reelsense_part2_models.py      # All recommendation models
-├── reelsense_part3_diversity.py   # Diversity optimization & explainability
-├── reelsense_part4_evaluation.py  # Evaluation metrics
-├── requirements.txt               # Python dependencies
-├── README.md                      # This file
-├── ReelSense_Implementation_Plan.md  # Detailed implementation guide
-│
+├── src/                           # Source code
+│   ├── reelsense_main.py          # Main execution script
+│   ├── reelsense_part1_data.py    # Data loading, EDA, feature engineering
+│   ├── reelsense_part2_models.py  # All recommendation models
+│   ├── reelsense_part3_diversity.py # Diversity optimization & explainability
+│   ├── reelsense_part4_evaluation.py # Evaluation metrics
 ├── data/                          # Dataset directory
 │   ├── movies.csv
 │   ├── ratings.csv
 │   ├── tags.csv
 │   └── links.csv
-│
-├── visualizations/                # EDA visualizations (auto-generated)
-│   ├── rating_distribution.png
-│   ├── genre_analysis.png
-│   ├── long_tail_analysis.png
-│   ├── temporal_trends.png
-│   └── metrics_summary.png
-│
-└── results/                       # Evaluation results (auto-generated)
-    ├── evaluation_results.csv
-    └── reelsense_report.txt
+├── outputs/                       # Generated outputs
+│   ├── visualizations/
+│   └── results/
+├── requirements.txt               # Python dependencies
+├── README.md                      # This file
+└── ReelSense_Implementation_Plan.md
 ```
 
 ## 🚀 Quick Start
@@ -67,15 +59,14 @@ pip install -r requirements.txt
 
 ### 2. Prepare Dataset
 
-Download the [MovieLens Latest Small Dataset](https://grouplens.org/datasets/movielens/latest/) and place the extracted files in the project directory (or a `data/` folder):
-- `movies.csv`
-- `ratings.csv`
-- `tags.csv`
-- `links.csv`
+Data items are already in `data/`. If setting up fresh, download the [MovieLens Latest Small Dataset](https://grouplens.org/datasets/movielens/latest/) and place csvs in `data/`.
 
 ### 3. Run the System
 
+Navigate to the `src` directory and run:
+
 ```bash
+cd src
 python reelsense_main.py
 ```
 

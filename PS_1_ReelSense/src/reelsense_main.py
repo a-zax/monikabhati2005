@@ -41,9 +41,10 @@ class Config:
     """Configuration for ReelSense system"""
     
     # Data paths
-    DATA_PATH = './'
-    OUTPUT_DIR = './results/'
-    VIZ_DIR = './visualizations/'
+    # Data paths
+    DATA_PATH = '../data/'
+    OUTPUT_DIR = '../outputs/results/'
+    VIZ_DIR = '../outputs/visualizations/'
     
     # Model parameters
     K = 10  # Number of recommendations
