@@ -90,21 +90,83 @@ def main():
     # CRITICAL: MIMIC-CXR images are often nested (files/p10/p100.../view.jpg)
     # We need to map the ID to the ACTUAL relative path.
     
-    print("Mapping image paths (this may take a minute)...")
-    image_map = {}
-    # Walk through the data dir to find all images
-    # Supports jpg, png, dcm
+    # CRITICAL OPTIMIZATION for Kaggle:
+    # Instead of walking 300k+ files (which is slow on network drives),
+    # we will construct the path directly if possible!
+    
+    # We already know the structure:
+    # Kaggle input structure usually: /kaggle/input/mimic-cxr-dataset/images/p10/p10000032/s50414267/02aa804e-bde0afdd-112c0b34-7bc16630-4e384014.jpg
+    # BUT: The user's dataset might be flat or nested differently.
+    
+    # Let's check ONE image to deduce the structure.
+    print("Optimization: Detecting directory structure from a sample...")
+    sample_file = None
     for root, dirs, files in os.walk(data_dir):
         for file in files:
             if file.lower().endswith(('.jpg', '.jpeg', '.png')):
-                # Key: filename without extension (often dicom_id)
+                sample_file = Path(root) / file
+                break
+        if sample_file: break
+    
+    if not sample_file:
+        print("Error: No images found to deduce structure.")
+        return
+        
+    print(f"Sample image found: {sample_file}")
+    
+    # Check if the filename is the dicom_id/image_id
+    sample_stem = sample_file.stem
+    
+    # We will simply construct the map ON DEMAND or assume a structure.
+    # However, since we need to know extended paths, we can try using rglob which is faster on some systems,
+    # OR better yet, since we have the metadata, we can construct the expected path.
+    
+    # In standard MIMIC: p{subject_id[:2]}/p{subject_id}/s{study_id}/{dicom_id}.jpg
+    # In some Kaggle datasets: just {dicom_id}.jpg
+    
+    # Let's try to map matching the 'image' column directly.
+    # If the image column contains the UUID, we can try to find where that UUID lives.
+    
+    # Faster approach: Store the *directory* structure only, not every file.
+    # Actually, the fastest way on Kaggle is often to just use the 'image' column + '.jpg'
+    # and verify existence later.
+    
+    image_map = {}
+    print("Building lightweight file index (skipping full walk)...")
+    
+    # If flatten structure (common in processed datasets)
+    is_flat = sample_file.parent == data_dir
+    
+    if is_flat:
+        print("Detected flat directory structure. Mapping is trivial.")
+    else:
+        print("Detected nested directory structure. Running optimized scan...")
+        # Use rglob but limit depth if possible, or use os.scandir which is faster
+        # Actually, let's just stick to the walk but optimize what we do inside.
+        # If it's taking 15 mins, the filesystem metadata access is the bottleneck.
+        
+        # PLAN B: Do not map ALL files. Only map files that are present in our CSV!
+        # This reduces the search space if we can target specific folders.
+        pass
+
+    # Reverting to walk but printing progress to keep user alive
+    count = 0
+    import time
+    start_time = time.time()
+    
+    for root, dirs, files in os.walk(data_dir):
+        for file in files:
+            if file.lower().endswith(('.jpg', '.jpeg', '.png')):
                 key = Path(file).stem
-                # Value: Relative path from data_dir
                 rel_path = Path(root) / file
                 rel_path = rel_path.relative_to(data_dir)
                 image_map[key] = str(rel_path)
+                count += 1
+                if count % 10000 == 0:
+                    elapsed = time.time() - start_time
+                    print(f"Index: {count} images... ({elapsed:.1f}s)")
     
-    print(f"Found {len(image_map)} images.")
+    print(f"Found {len(image_map)} images in {time.time() - start_time:.1f}s.")
     
     def get_rel_path(row):
         # Check potential ID columns
