@@ -3,23 +3,13 @@
 Comprehensive evaluation script
 """
 
-import torch
-from torch.utils.data import DataLoader
-from pathlib import Path
-import argparse
-import json
-import sys
-import numpy as np
-from tqdm import tqdm
-from transformers import AutoTokenizer
-from sklearn.metrics import f1_score
-from nltk.translate.bleu_score import corpus_bleu
+from torch.cuda.amp import autocast
+import transformers
 
-# Ensure we can import from parent
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+# Silence warnings
+transformers.logging.set_verbosity_error()
 
-from models.cognitive_model import CognitiveReportGenerator
-from models.dataset import ChestXrayDataset, get_transforms
+# ... imports ...
 
 def evaluate_all(model, dataloader, tokenizer, device):
     """
@@ -37,13 +27,29 @@ def evaluate_all(model, dataloader, tokenizer, device):
             indication_ids = batch['indication_ids'].to(device)
             indication_mask = batch['indication_mask'].to(device)
             
-            # Generate
-            generated_ids, disease_probs = model.generate(
-                images, 
-                indication_ids, 
-                indication_mask,
-                max_length=256
-            )
+            # Generate with Mixed Precision
+            with autocast():
+                generated_ids, disease_probs = model.generate(
+                    images, 
+                    indication_ids, 
+                    indication_mask,
+                    max_length=256
+                )
+            
+            # Decode generated reports
+            # ...
+
+# ...
+
+    # Load tokenizer (same as used in training/dataset)
+    tokenizer = AutoTokenizer.from_pretrained(args.decoder)
+    
+    # CRITICAL: For generation with decoder-only models (GPT), padding should be on the LEFT
+    # otherwise generated tokens might be overwritten or attention might be wrong.
+    tokenizer.padding_side = 'left'
+    
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
             
             # Decode generated reports
             for i in range(len(generated_ids)):
@@ -108,6 +114,11 @@ def main(args):
     
     # Load tokenizer (same as used in training/dataset)
     tokenizer = AutoTokenizer.from_pretrained(args.decoder)
+    
+    # CRITICAL: For generation with decoder-only models (GPT), padding should be on the LEFT
+    # otherwise generated tokens might be overwritten or attention might be wrong.
+    tokenizer.padding_side = 'left'
+    
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
