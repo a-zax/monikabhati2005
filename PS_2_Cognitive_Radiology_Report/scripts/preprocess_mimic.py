@@ -56,12 +56,18 @@ def main():
 
     print(f"Processing {target_file}...")
     df = pd.read_csv(target_file)
+    print(f"Columns found: {list(df.columns)}")
     
     # Map columns based on user spec
     # "subject_id", "study_id", "dicom_id", "text", "ViewPosition"
     
     rename_map = {}
     if 'dicom_id' in df.columns: rename_map['dicom_id'] = 'filename_base'
+    # Some datasets use 'image_id'
+    elif 'image_id' in df.columns: rename_map['image_id'] = 'filename_base'
+    # Fallback: check formatted columns
+    elif 'id' in df.columns: rename_map['id'] = 'filename_base'
+
     if 'text' in df.columns: rename_map['text'] = 'report'
     
     df.rename(columns=rename_map, inplace=True)
@@ -87,12 +93,14 @@ def main():
     print(f"Found {len(image_map)} images.")
     
     def get_rel_path(row):
-        # file_id could be in 'dicom_id', 'image_id', or 'filename_base'
-        # We renamed to 'filename_base' or 'filename' above or below?
-        # The rename happens *before* this hook.
-        
         # Check potential ID columns
-        candidates = [row.get('filename_base'), row.get('dicom_id'), row.get('image_id'), row.get('subject_id')]
+        candidates = [
+            row.get('filename_base'), 
+            row.get('dicom_id'), 
+            row.get('image_id'), 
+            row.get('subject_id'),
+            row.get('path') # sometimes path is provided
+        ]
         
         for cand in candidates:
             if pd.notna(cand):
@@ -103,38 +111,56 @@ def main():
                 # Try with .jpg
                 if s_cand.replace('.jpg','') in image_map:
                     return image_map[s_cand.replace('.jpg','')]
+                # Try just stem
+                if Path(s_cand).stem in image_map:
+                    return image_map[Path(s_cand).stem]
                     
         return None
 
     # Apply mapping
-    # We need to ensure we have a column to map from.
-    # The previous rename block:
-    # if 'dicom_id' in df.columns: rename_map['dicom_id'] = 'filename_base'
-    # df.rename...
-    
-    # So we look at 'filename_base'
+    # Ensure filename column exists
+    df['filename'] = np.nan
+
     if 'filename_base' in df.columns:
         df['filename'] = df.apply(get_rel_path, axis=1)
-    elif 'image_id' in df.columns:
-         df['filename'] = df.apply(lambda x: image_map.get(str(x['image_id']), None), axis=1)
+    elif 'path' in df.columns:
+         # Usage of path column if it exists
+         df['filename'] = df.apply(get_rel_path, axis=1)
+    else:
+        # Last ditch effort: try all columns that look like IDs
+        potential_id_cols = [c for c in df.columns if 'id' in c.lower()]
+        if potential_id_cols:
+            print(f"Trying to map from potential ID columns: {potential_id_cols}")
+            for col in potential_id_cols:
+                df['temp_base'] = df[col]
+                df['filename'] = df.apply(lambda x: get_rel_path({'filename_base': x['temp_base']}), axis=1)
+                if df['filename'].notna().sum() > 0:
+                    print(f"Successfully mapped using column: {col}")
+                    break
     
     # Drop rows where image not found
     len_before = len(df)
     df = df.dropna(subset=['filename'])
     print(f"Matched {len(df)}/{len_before} images.")
+
     if len(df) == 0:
-        print("WARNING: No images matched! Checking first 5 map keys vs ids...")
+        print("WARNING: No images matched! Checking first 5 map keys vs df...")
         print(f"Map keys: {list(image_map.keys())[:5]}")
-        print(f"IDs: {df['filename_base'].head().tolist() if 'filename_base' in df.columns else 'N/A'}")
+        print(f"DF Sample: {df.head().to_dict() if not df.empty else 'Empty DF'}")
         
     # Standardize columns
     # We need: 'filename', 'indication', 'report'
     
     # Ensure attributes exist
     if 'report' not in df.columns:
-        print("CRITICAL: 'report' or 'text' column not found.")
-        # Fallback for compilation: create empty
-        df['report'] = "No report available."
+        print("CRITICAL: 'report' column not found. Checking for alternatives...")
+        if 'findings' in df.columns:
+             df['report'] = df['findings']
+        elif 'impression' in df.columns:
+             df['report'] = df['impression']
+        else:
+             print("No report text found. Creating dummy.")
+             df['report'] = "No report available."
         
     if 'indication' not in df.columns:
         df['indication'] = "Chest X-ray."
