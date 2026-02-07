@@ -112,11 +112,24 @@ def main(args):
         tokenizer.pad_token = tokenizer.eos_token
     
     # Load test dataset
-    print("Loading test dataset...")
+    print(f"Loading test dataset ({args.dataset})...")
     data_root = Path(args.data_dir)
+    
+    if args.dataset == 'mimic_cxr':
+        processed_dir = data_root / 'processed_mimic'
+        img_dir = data_root / 'raw/mimic_cxr'
+    else:
+        processed_dir = data_root / 'processed'
+        img_dir = data_root / 'raw/iu_xray/images'
+        
+    test_csv = processed_dir / 'test.csv'
+    if not test_csv.exists():
+        print(f"Error: {test_csv} not found.")
+        return
+
     test_dataset = ChestXrayDataset(
-        csv_file=data_root / 'processed/test.csv',
-        img_dir=data_root / 'raw/iu_xray/images',
+        csv_file=test_csv,
+        img_dir=img_dir,
         transform=get_transforms(is_train=False),
         max_text_len=256
     )
@@ -168,6 +181,7 @@ if __name__ == "__main__":
     parser.add_argument('--checkpoint', type=str, required=True, help="Path to model checkpoint")
     parser.add_argument('--data_dir', type=str, default='data')
     parser.add_argument('--output_dir', type=str, default='outputs')
+    parser.add_argument('--dataset', type=str, default='iu_xray', help='iu_xray or mimic_cxr')
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--num_workers', type=int, default=4)
     

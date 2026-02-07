@@ -34,13 +34,19 @@ pip install -r requirements.txt
 
 # 3. Download Data
 # Ensure you have .kaggle/kaggle.json set up
-python scripts/download_with_hub.py
+python scripts/download_with_hub.py # IU-Xray
+python scripts/download_mimic.py    # MIMIC-CXR
 
 # 4. Preprocess
 python scripts/preprocess_iu_xray.py
+python scripts/preprocess_mimic.py
 
 # 5. Train
-python training/train.py --batch_size 8 --epochs 15
+# Train on IU-Xray
+python training/train.py --batch_size 8 --epochs 15 --dataset iu_xray
+
+# Train on MIMIC-CXR
+python training/train.py --batch_size 16 --epochs 15 --dataset mimic_cxr
 ```
 
 ## Troubleshooting

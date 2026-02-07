@@ -143,15 +143,27 @@ def main(args):
         data_root = Path(args.data_dir)
         
         # Check if files exist
-        train_csv = data_root / 'processed/train.csv'
+        # Determine processed data path
+        dataset_name = args.dataset
+        if dataset_name == 'mimic_cxr':
+            processed_dir = data_root / 'processed_mimic'
+            img_dir = data_root / 'raw/mimic_cxr' # Adjust if nested
+        else:
+            processed_dir = data_root / 'processed'
+            img_dir = data_root / 'raw/iu_xray/images'
+
+        train_csv = processed_dir / 'train.csv'
+        val_csv = processed_dir / 'val.csv'
+        
         if not train_csv.exists():
             print(f"Error: {train_csv} not found. Running preprocessing...")
-            # Fallback or error
-            # In this flow, we assume preprocessing is done.
+            # Ideally run script here, but for now just warn
+            print("Please run preprocessing script.")
+            sys.exit(1)
         
         train_dataset = ChestXrayDataset(
-            csv_file=data_root / 'processed/train.csv',
-            img_dir=data_root / 'raw/iu_xray/images',
+            csv_file=train_csv,
+            img_dir=img_dir,
             transform=get_transforms(is_train=True, img_size=args.img_size),
             enc_tokenizer_name=args.text_encoder,
             dec_tokenizer_name=args.decoder,
@@ -159,8 +171,8 @@ def main(args):
         )
         
         val_dataset = ChestXrayDataset(
-            csv_file=data_root / 'processed/val.csv',
-            img_dir=data_root / 'raw/iu_xray/images',
+            csv_file=val_csv,
+            img_dir=img_dir,
             transform=get_transforms(is_train=False, img_size=args.img_size),
             enc_tokenizer_name=args.text_encoder,
             dec_tokenizer_name=args.decoder,
@@ -268,6 +280,7 @@ if __name__ == "__main__":
     # Paths
     parser.add_argument('--data_dir', type=str, default='data')
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints')
+    parser.add_argument('--dataset', type=str, default='iu_xray', help='iu_xray or mimic_cxr')
     
     # Model
     parser.add_argument('--visual_encoder', type=str, default='vit_base_patch16_224')

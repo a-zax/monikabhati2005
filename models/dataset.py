@@ -21,8 +21,13 @@ class ChestXrayDataset(Dataset):
     ):
         self.data = pd.read_csv(csv_file)
         self.img_dir = Path(img_dir)
+        # Auto-detect subdirectory structure
         if (self.img_dir / 'images_normalized').exists():
-            self.img_dir = self.img_dir / 'images_normalized'
+            self.img_dir = self.img_dir / 'images_normalized' # IU-Xray
+        elif (self.img_dir / 'files').exists():
+             self.img_dir = self.img_dir / 'files' # MIMIC-CXR often has 'files'
+            
+        self.transform = transform
         self.transform = transform
         self.max_text_len = max_text_len
         self.max_indication_len = max_indication_len
