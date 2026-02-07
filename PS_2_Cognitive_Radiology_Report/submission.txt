@@ -1,36 +1,16 @@
+
 # Cognitive Radiology Report Generation
-## BrainDead 2K26 Hackathon - Problem Statement 2
 
-### Project Overview
-An end-to-end Deep Learning framework to generate clinical radiology reports from chest X-rays.
-Implements three cognitive modules:
-1. **PRO-FA**: Hierarchical Visual Alignment
-2. **MIX-MLP**: Knowledge-Enhanced Classification
-3. **RCTA**: Triangular Cognitive Attention
+## Team: BrainDead
+## Problem Statement 2 (PS-2)
 
-### Repository Structure
-- `models/`: Source code for PRO-FA, MIX-MLP, RCTA, and the full model.
-- `training/`: Training loop with mixed precision and gradient accumulation.
-- `evaluation/`: Evaluation scripts for BLEU-4, CheXpert, etc.
-- `scripts/`: Data preprocessing, download, and inference scripts.
+### Contained Files:
+- models/           : PyTorch Model definitions (PRO-FA, MIX-MLP, RCTA)
+- training/         : Training scripts
+- evaluation/       : Evaluation metrics
+- scripts/          : Data preprocessing and inference scripts
+- requirements.txt  : Dependencies
+- README.md         : Documentation
 
-### Setup & Usage
-1. Install dependencies: `pip install -r requirements.txt`
-2. Download data: `python scripts/download_with_hub.py`
-3. Preprocess: `python scripts/preprocess_iu_xray.py`
-4. Train: `python training/train.py`
-5. Generate Reports: `python scripts/generate_reports.py --checkpoint checkpoints/best_model.pth --image path/to/image.jpg`
-
-### Key Results (Expected)
-- BLEU-4: > 0.10
-- CheXpert F1: > 0.15
-- RadGraph F1: > 0.10
-
-### Video Demo
-[Link to Video Demo - TODO]
-
-### Model Checkpoint
-[Link to Drive/Dropbox - TODO]
-
-### GitHub Repository
-[Link to GitHub - TODO]
+### How to Run:
+Please refer to README.md for detailed instructions on training and inference via Google Colab.
