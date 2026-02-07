@@ -22,6 +22,15 @@ class ChestXrayDataset(Dataset):
         self.data = pd.read_csv(csv_file)
         self.img_dir = Path(img_dir)
         # Auto-detect subdirectory structure
+        # Kaggle Compatibility: Look for images in /kaggle/input if not found locally
+        if not self.img_dir.exists() or not any(self.img_dir.iterdir()):
+             kaggle_iu = Path('/kaggle/input/chest-xrays-indiana-university')
+             kaggle_mimic = Path('/kaggle/input/mimic-cxr-dataset')
+             if kaggle_iu.exists(): 
+                 self.img_dir = kaggle_iu
+             elif kaggle_mimic.exists():
+                 self.img_dir = kaggle_mimic
+
         if (self.img_dir / 'images_normalized').exists():
             self.img_dir = self.img_dir / 'images_normalized' # IU-Xray
         elif (self.img_dir / 'files').exists():
@@ -51,6 +60,10 @@ class ChestXrayDataset(Dataset):
         img_path = self.img_dir / row['filename']
         try:
             image = Image.open(img_path).convert('RGB')
+            # Optimization: Resize to a smaller size before converting to numpy 
+            # to avoid large memory allocations for high-res images
+            if max(image.size) > 512:
+                image.thumbnail((512, 512), Image.Resampling.LANCZOS)
             image = np.array(image)
         except Exception as e:
             print(f"Error loading image {img_path}: {e}")

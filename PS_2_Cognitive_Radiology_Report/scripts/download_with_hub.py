@@ -5,6 +5,13 @@ from pathlib import Path
 
 def main():
     print("Downloading dataset using kagglehub...")
+    # Kaggle Compatibility
+    kaggle_path = Path('/kaggle/input/chest-xrays-indiana-university')
+    if kaggle_path.exists():
+        print(f"Kaggle detected. IU-Xray already available at {kaggle_path}")
+        print("Skipping download/copy to save space.")
+        return
+
     # Download latest version
     try:
         path = kagglehub.dataset_download("raddar/chest-xrays-indiana-university")
@@ -25,11 +32,11 @@ def main():
     # Create target directory if it doesn't exist
     target_dir.mkdir(parents=True, exist_ok=True)
     
-    # Move files
-    print("Moving files to target directory...")
+    # Copy files
+    print("Copying files to target directory...")
     source_path = Path(path)
     
-    # Iterate over files in the downloaded path and move them
+    # Iterate over files in the downloaded path and copy them
     for item in source_path.iterdir():
         dest = target_dir / item.name
         if dest.exists():
@@ -38,8 +45,11 @@ def main():
             else:
                 os.remove(dest)
         
-        print(f"Moving {item} to {dest}")
-        shutil.move(str(item), str(dest))
+        print(f"Copying {item} to {dest}")
+        if item.is_dir():
+            shutil.copytree(item, dest)
+        else:
+            shutil.copy2(item, dest)
         
     print("✓ Dataset successfully placed in data/raw/iu_xray")
     
