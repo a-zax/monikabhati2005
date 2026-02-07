@@ -1,6 +1,6 @@
-# 🎬 ReelSense: Complete Implementation Plan & Architecture
+# ReelSense: Complete Implementation Plan & Architecture
 
-## 📋 Table of Contents
+## Table of Contents
 1. [Project Overview](#project-overview)
 2. [System Architecture](#system-architecture)
 3. [Implementation Timeline](#implementation-timeline)
@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
 **Goal**: Build an explainable, diverse movie recommender system that:
 - Provides personalized Top-K recommendations
@@ -24,7 +24,7 @@
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -76,7 +76,7 @@
 
 ---
 
-## 📅 Implementation Timeline
+## Implementation Timeline
 
 ### **Phase 1: Setup & EDA (Day 1)**
 - [ ] Environment setup and library installation
@@ -128,7 +128,7 @@
 
 ---
 
-## 🔧 Detailed Implementation Guide
+## Detailed Implementation Guide
 
 ### **1. Environment Setup**
 
@@ -881,7 +881,7 @@ class RecommenderEvaluator:
 
 ---
 
-## ✅ Validation Strategy
+## Validation Strategy
 
 ### **1. Cross-Validation**
 - Use time-based k-fold validation (not random)
@@ -905,46 +905,46 @@ class RecommenderEvaluator:
 
 ---
 
-## 🏆 Tips for Best Outcome
+##  Tips for Best Outcome
 
 ### **1. Code Quality**
-- ✅ Clean, well-commented code
-- ✅ Modular design (separate classes/functions)
-- ✅ Use configuration files for hyperparameters
-- ✅ Include requirements.txt
+- Clean, well-commented code
+- Modular design (separate classes/functions)
+- Use configuration files for hyperparameters
+- Include requirements.txt
 
 ### **2. Visualizations**
-- ✅ High-quality plots (300 DPI)
-- ✅ Clear labels and titles
-- ✅ Color-blind friendly palettes
-- ✅ Consistent styling
+- High-quality plots (300 DPI)
+- Clear labels and titles
+- Color-blind friendly palettes
+- Consistent styling
 
 ### **3. Report Writing**
-- ✅ Executive summary (1 page)
-- ✅ Clear problem statement
-- ✅ Methodology with justifications
-- ✅ Results with statistical analysis
-- ✅ Limitations and future work
-- ✅ Proper citations (APA/IEEE format)
+- Executive summary (1 page)
+- Clear problem statement
+- Methodology with justifications
+- Results with statistical analysis
+- Limitations and future work
+- Proper citations (APA/IEEE format)
 
 ### **4. Differentiation Factors**
-- ✅ Novel diversity optimization approach
-- ✅ High-quality natural language explanations
-- ✅ Comprehensive evaluation across all metrics
-- ✅ User-centric design considerations
-- ✅ Scalability discussion
+- Novel diversity optimization approach
+- High-quality natural language explanations
+- Comprehensive evaluation across all metrics
+- User-centric design considerations
+- Scalability discussion
 
 ### **5. Common Pitfalls to Avoid**
-- ❌ Data leakage in train-test split
-- ❌ Ignoring cold-start problem
-- ❌ Over-optimizing for one metric
-- ❌ Poor code documentation
-- ❌ Lack of error handling
-- ❌ Missing baseline comparisons
+- Data leakage in train-test split
+- Ignoring cold-start problem
+- Over-optimizing for one metric
+- Poor code documentation
+- Lack of error handling
+- Missing baseline comparisons
 
 ---
 
-## 📊 Expected Results Benchmark
+##  Expected Results Benchmark
 
 **Good Performance:**
 - NDCG@10: > 0.25
@@ -962,7 +962,7 @@ class RecommenderEvaluator:
 
 ---
 
-## 🎯 Final Checklist
+##  Final Checklist
 
 **Before Submission:**
 - [ ] All code runs without errors

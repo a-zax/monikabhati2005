@@ -1,0 +1,60 @@
+======================================================================
+               REELSENSE FINAL REPORT
+     Explainable Movie Recommender with Diversity
+======================================================================
+
+Generated: 2026-02-07 22:09:06
+
+======================================================================
+DATASET STATISTICS
+======================================================================
+Total Movies:     9742
+Total Ratings:    100836
+Total Users:      610
+Total Tags:       2758
+Train Ratings:    99006
+Test Ratings:     1830
+Sparsity:         0.9830
+
+======================================================================
+MODEL CONFIGURATION
+======================================================================
+Hybrid Weights:
+  - popularity: 0.1
+  - user_cf: 0.25
+  - item_cf: 0.25
+  - svd: 0.25
+  - content: 0.15
+
+Diversity Lambda: 0.5
+Recommendation Count (K): 10
+
+======================================================================
+EVALUATION RESULTS
+======================================================================
+
+RANKING METRICS:
+  Precision@10:  0.0060
+  Recall@10:     0.0233
+  NDCG@10:       0.0125
+  MAP@10:        0.0050
+
+DIVERSITY METRICS:
+  Catalog Coverage:      0.0265
+  Intra-List Diversity:  0.8394
+  Genre Diversity:       0.5202
+  Gini Index:            0.4221
+
+NOVELTY METRICS:
+  Novelty Score:    3.4886
+  Long-tail %:      0.3620
+
+======================================================================
+CONCLUSION
+======================================================================
+ReelSense successfully combines multiple recommendation approaches
+with diversity optimization and natural language explanations.
+
+The system achieves an NDCG@10 of 0.0125, while maintaining
+high diversity (Intra-List: 0.8394) and novelty (Long-tail: 36.20%).
+

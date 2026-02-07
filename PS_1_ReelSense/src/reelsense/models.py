@@ -1,6 +1,6 @@
 """
-ReelSense Part 2: Recommendation Models
-Implements all recommendation algorithms: Popularity, CF, SVD, Content-Based, and Hybrid
+Recommendation models module for ReelSense.
+Implements: Popularity, CF, SVD, Content-Based, and Hybrid recommenders.
 """
 
 import pandas as pd
@@ -10,9 +10,9 @@ from collections import defaultdict
 import warnings
 warnings.filterwarnings('ignore')
 
-# ============================================================================
+
 # POPULARITY-BASED RECOMMENDER (BASELINE)
-# ============================================================================
+
 
 class PopularityRecommender:
     """
@@ -69,9 +69,8 @@ class PopularityRecommender:
         return candidates.head(k).index.tolist()
 
 
-# ============================================================================
 # USER-BASED COLLABORATIVE FILTERING
-# ============================================================================
+
 
 class UserBasedCF:
     """User-based collaborative filtering using cosine similarity"""
@@ -180,9 +179,8 @@ class UserBasedCF:
         return [movie_id for movie_id, _ in predictions[:k]]
 
 
-# ============================================================================
 # ITEM-BASED COLLABORATIVE FILTERING
-# ============================================================================
+
 
 class ItemBasedCF:
     """Item-based collaborative filtering"""
@@ -191,6 +189,7 @@ class ItemBasedCF:
         self.k_neighbors = k_neighbors
         self.item_similarity = None
         self.user_item_matrix = None
+        self.neighbors = {}
     
     def fit(self, ratings_df):
         """Train the model"""
@@ -203,8 +202,6 @@ class ItemBasedCF:
             values='rating'
         ).fillna(0)
         
-        # Calculate item similarity (transpose matrix)
-        print("[Item-Based CF] Computing item similarities...")
         # Calculate item similarity (transpose matrix)
         print("[Item-Based CF] Computing item similarities...")
         similarity_matrix = cosine_similarity(self.user_item_matrix.T)
@@ -272,10 +269,7 @@ class ItemBasedCF:
         recommendations.sort(key=lambda x: x[1], reverse=True)
         return [movie_id for movie_id, _ in recommendations[:k]]
 
-
-# ============================================================================
 # MATRIX FACTORIZATION (SVD)
-# ============================================================================
 
 class SimpleSVD:
     """
@@ -412,9 +406,8 @@ class SimpleSVD:
         return [movie_id for movie_id, _ in predictions[:k]]
 
 
-# ============================================================================
 # CONTENT-BASED RECOMMENDER
-# ============================================================================
+
 
 class ContentBasedRecommender:
     """Content-based filtering using movie features"""
@@ -429,8 +422,6 @@ class ContentBasedRecommender:
         
         self.movie_features = movie_features
         
-        # Calculate movie similarity
-        print("[Content-Based] Computing similarity matrix...")
         # Calculate movie similarity
         print("[Content-Based] Computing similarity matrix...")
         similarity_matrix = cosine_similarity(movie_features)
@@ -485,9 +476,8 @@ class ContentBasedRecommender:
         return [movie_id for movie_id, _ in recommendations[:k]]
 
 
-# ============================================================================
+
 # HYBRID RECOMMENDER
-# ============================================================================
 
 class HybridRecommender:
     """
@@ -497,6 +487,7 @@ class HybridRecommender:
     
     def __init__(self, weights=None):
         if weights is None:
+            # Default weights
             weights = {
                 'popularity': 0.1,
                 'user_cf': 0.25,
@@ -524,7 +515,7 @@ class HybridRecommender:
         self.svd.fit(ratings_df)
         self.content.fit(movie_features)
         
-        print("\n✓ All models trained successfully!")
+        print("\n All models trained successfully!")
     
     def recommend(self, user_id, ratings_df, all_movies, rated_movies=None, k=10):
         """Generate hybrid recommendations"""
@@ -550,11 +541,11 @@ class HybridRecommender:
                 score = 1.0 / (idx + 1)
                 combined_scores[movie_id] += weight * score
 
-        add_scores(pop_recs, self.weights['popularity'])
-        add_scores(user_cf_recs, self.weights['user_cf'])
-        add_scores(item_cf_recs, self.weights['item_cf'])
-        add_scores(svd_recs, self.weights['svd'])
-        add_scores(content_recs, self.weights['content'])
+        add_scores(pop_recs, self.weights.get('popularity', 0))
+        add_scores(user_cf_recs, self.weights.get('user_cf', 0))
+        add_scores(item_cf_recs, self.weights.get('item_cf', 0))
+        add_scores(svd_recs, self.weights.get('svd', 0))
+        add_scores(content_recs, self.weights.get('content', 0))
         
         # Sort and return top-k
         final_recommendations = sorted(
@@ -564,8 +555,3 @@ class HybridRecommender:
         )
         
         return [movie_id for movie_id, _ in final_recommendations[:k]]
-
-
-if __name__ == "__main__":
-    print("ReelSense Part 2: Recommendation Models")
-    print("This file contains all recommendation algorithms")

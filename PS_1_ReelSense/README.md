@@ -1,6 +1,6 @@
-# 🎬 ReelSense: Explainable Movie Recommender System with Diversity Optimization
+# ReelSense: Explainable Movie Recommender System with Diversity Optimization
 
-## 📋 Project Overview
+## Project Overview
 
 ReelSense is a comprehensive movie recommendation system that goes beyond traditional rating prediction. It combines:
 
@@ -9,16 +9,16 @@ ReelSense is a comprehensive movie recommendation system that goes beyond tradit
 3. **Natural Language Explanations** - Transparent reasoning for each recommendation
 4. **Comprehensive Evaluation** - Ranking, diversity, and novelty metrics
 
-## 🎯 Features
+## Features
 
-- ✅ **Hybrid Recommendation**: Combines 5 different recommendation algorithms
-- ✅ **Diversity Optimization**: MMR algorithm, genre balancing, popularity debiasing
-- ✅ **Explainability**: Natural language explanations based on genres, tags, and collaborative signals
-- ✅ **Comprehensive Metrics**: NDCG, MAP, Precision, Recall, Catalog Coverage, Gini Index, Novelty Score
-- ✅ **Professional Visualizations**: High-quality plots for EDA and results
-- ✅ **Modular Architecture**: Clean, reusable code structure
+- **Hybrid Recommendation**: Combines 5 different recommendation algorithms
+- **Diversity Optimization**: MMR algorithm, genre balancing, popularity debiasing
+- **Explainability**: Natural language explanations based on genres, tags, and collaborative signals
+- **Comprehensive Metrics**: NDCG, MAP, Precision, Recall, Catalog Coverage, Gini Index, Novelty Score
+- **Professional Visualizations**: High-quality plots for EDA and results
+- **Modular Architecture**: Clean, reusable code structure
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 reelsense/
@@ -41,7 +41,7 @@ reelsense/
 └── ReelSense_Implementation_Plan.md
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Setup Environment
 
@@ -70,7 +70,7 @@ cd src
 python reelsense_main.py
 ```
 
-## 📊 Expected Outputs
+## Expected Outputs
 
 ### Visualizations (in `visualizations/` folder)
 - `rating_distribution.png` - Distribution of user ratings
@@ -84,11 +84,11 @@ python reelsense_main.py
 - `evaluation_results.csv` - Detailed metrics per user
 - `reelsense_report.txt` - Comprehensive final report
 
-## 🔧 Configuration
+## Configuration
 
 Edit `Config` class in `reelsense_main.py` to tune parameters like `K` (number of recommendations), `LAMBDA_MMR` (diversity weight), and `HYBRID_WEIGHTS`.
 
-## 📝 Citation
+## Citation
 
 If using this code, please cite:
 

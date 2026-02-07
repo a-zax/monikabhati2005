@@ -1,18 +1,12 @@
 """
-ReelSense Part 3: Diversity Optimization & Explainability
-Implements diversity re-ranking and explanation generation
+Diversity optimization and explainability module for ReelSense.
 """
 
 import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from collections import Counter, defaultdict
+from collections import defaultdict
 import warnings
 warnings.filterwarnings('ignore')
-
-# ============================================================================
-# DIVERSITY OPTIMIZATION
-# ============================================================================
 
 class DiversityOptimizer:
     """
@@ -42,9 +36,7 @@ class DiversityOptimizer:
         selected = []
         candidates = recommendations.copy()
         
-        # Select first item (highest relevance)
-        # Check if first item is in features, if not skip it or take it blindly? 
-        # Better to check.
+        # Select first item (highest relevance) -> prioritization if feature exists
         found_first = False
         for i, candid in enumerate(candidates):
             if candid in movie_features.index:
@@ -62,8 +54,13 @@ class DiversityOptimizer:
         # Pre-process features for fast access (DataFrame.loc is slow in loops)
         # Convert to numpy matrix and create index map
         valid_candidates = [c for c in candidates if c in movie_features.index]
+        
+        # Optimization: If no candidates have features, just return top k
         if not valid_candidates:
-             return recommendations[:k]
+             # Append remaining candidates until k
+             while len(selected) < k and candidates:
+                 selected.append(candidates.pop(0))
+             return selected[:k]
 
         # Use efficient numpy operations
         feature_matrix = movie_features.values
@@ -100,12 +97,7 @@ class DiversityOptimizer:
                 for selected_item in selected:
                     if selected_item in id_to_idx:
                         sel_vec = get_vector(selected_item)
-                        # numpy cosine similarity: dot product (vectors are normalized?)
-                        # Tfidf and dummies usually are not unit vectors by default?
-                        # Cosine sim = dot(u, v) / (norm(u)*norm(v))
-                        # For speed, let's assume doing dot product is enough if we normalized?
-                        # Or just use sklearn cosine_similarity but on single vectors it's slow.
-                        # Manual calculation is faster here.
+                        # Manual cosine similarity calculation for speed
                         dot = np.dot(cand_vec, sel_vec)
                         norm_a = np.linalg.norm(cand_vec)
                         norm_b = np.linalg.norm(sel_vec)
@@ -165,12 +157,6 @@ class DiversityOptimizer:
             
             genres = movie_genres_map.get(movie_id, [])
             
-            # Check if adding this movie violates genre limits
-            # We are lenient: if ANY genre is over limit, we might skip, 
-            # BUT if the movie introduces a NEW genre, we might prioritize it.
-            # Simple logic: skip if ALL its genres are already 'full' or if MAJORITY are full?
-            # Strict logic: skip if ANY genre is full.
-            
             can_add = True
             for genre in genres:
                 if genre_count[genre] >= max_per_genre:
@@ -219,11 +205,6 @@ class DiversityOptimizer:
             
             # Adjusted score: Higher score means BETTER rank
             # We want to boost items where popularity is LOW.
-            # penalty = popularity_norm * boost_factor
-            # This logic: 1 - penalty. If pop=1, penalty=boost_factor. Score drops.
-            # If pop=0, penalty=0. Score stays.
-            
-            penalty = popularity_norm * boost_factor
             adjusted_score = relevance * (1 + (1 - popularity_norm) * boost_factor)
             
             reranked.append((movie_id, adjusted_score))
@@ -252,10 +233,6 @@ class DiversityOptimizer:
         
         return diverse_recs
 
-
-# ============================================================================
-# EXPLAINABILITY ENGINE
-# ============================================================================
 
 class ExplainabilityEngine:
     """
@@ -480,10 +457,6 @@ class ExplainabilityEngine:
         return explanations
 
 
-# ============================================================================
-# COMPLETE RECOMMENDATION PIPELINE
-# ============================================================================
-
 class RecommendationPipeline:
     """
     End-to-end pipeline combining:
@@ -564,8 +537,3 @@ class RecommendationPipeline:
             results.append((movie_id, title, explanation))
         
         return results
-
-
-if __name__ == "__main__":
-    print("ReelSense Part 3: Diversity & Explainability")
-    print("This file implements diversity optimization and explanation generation")

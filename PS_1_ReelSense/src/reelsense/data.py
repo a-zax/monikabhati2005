@@ -1,34 +1,27 @@
 """
-ReelSense: Explainable Movie Recommender System with Diversity Optimization
-Complete Implementation
-
-Author: Hackathon Participant
-Date: February 2026
+Data loading and preprocessing module for ReelSense.
 """
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 import os
 import warnings
+from .config import Config
+
 warnings.filterwarnings('ignore')
 
 # Set styling
 sns.set_style('whitegrid')
 plt.rcParams['figure.dpi'] = 300
 
-# ============================================================================
-# PART 1: DATA LOADING AND PREPROCESSING
-# ============================================================================
-
 class DataLoader:
     """Load and preprocess MovieLens dataset"""
     
-    def __init__(self, data_path='./'):
-        self.data_path = data_path
+    def __init__(self, data_path=None):
+        self.data_path = data_path if data_path else Config.DATA_PATH
         self.movies = None
         self.ratings = None
         self.tags = None
@@ -51,7 +44,7 @@ class DataLoader:
             return self.movies, self.ratings, self.tags, self.links
         except FileNotFoundError as e:
             print(f"Error loading data: {e}")
-            print("Please ensure movies.csv, ratings.csv, tags.csv, and links.csv are in the data path.")
+            print(f"Please ensure movies.csv, ratings.csv, tags.csv, and links.csv are in {self.data_path}.")
             raise
 
     def clean_data(self):
@@ -109,22 +102,17 @@ class DataLoader:
         return train_df, test_df
 
 
-# ============================================================================
-# PART 2: EXPLORATORY DATA ANALYSIS
-# ============================================================================
-
 class EDAVisualizer:
     """Generate comprehensive EDA visualizations"""
     
-    def __init__(self, movies, ratings, tags, output_dir='./visualizations/'):
+    def __init__(self, movies, ratings, tags, output_dir=None):
         self.movies = movies
         self.ratings = ratings
         self.tags = tags
-        self.output_dir = output_dir
+        self.output_dir = output_dir if output_dir else Config.VIZ_DIR
         
         # Create output directory
-        import os
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
     
     def plot_rating_distribution(self):
         """Plot distribution of ratings"""
@@ -146,10 +134,10 @@ class EDAVisualizer:
         plt.ylabel('Count', fontsize=12)
         plt.grid(axis='y', alpha=0.3)
         plt.tight_layout()
-        plt.savefig(f'{self.output_dir}rating_distribution.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(self.output_dir, 'rating_distribution.png'), dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"✓ Rating distribution saved")
+        print(f" Rating distribution saved")
     
     def plot_user_activity(self):
         """Plot user activity distribution"""
@@ -171,10 +159,10 @@ class EDAVisualizer:
         axes[1].grid(axis='y', alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig(f'{self.output_dir}user_activity.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(self.output_dir, 'user_activity.png'), dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"✓ User activity saved")
+        print(f" User activity saved")
     
     def plot_genre_analysis(self):
         """Analyze genre popularity and ratings"""
@@ -221,10 +209,10 @@ class EDAVisualizer:
         axes[1].grid(axis='x', alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig(f'{self.output_dir}genre_analysis.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(self.output_dir, 'genre_analysis.png'), dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"✓ Genre analysis saved")
+        print(f" Genre analysis saved")
     
     def plot_long_tail(self):
         """Visualize long-tail distribution"""
@@ -256,10 +244,10 @@ class EDAVisualizer:
         axes[1].grid(alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig(f'{self.output_dir}long_tail_analysis.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(self.output_dir, 'long_tail_analysis.png'), dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"✓ Long-tail analysis saved")
+        print(f" Long-tail analysis saved")
     
     def plot_temporal_trends(self):
         """Plot rating trends over time"""
@@ -292,10 +280,10 @@ class EDAVisualizer:
         axes[1].set_xticks([])
         
         plt.tight_layout()
-        plt.savefig(f'{self.output_dir}temporal_trends.png', dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(self.output_dir, 'temporal_trends.png'), dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"✓ Temporal trends saved")
+        print(f" Temporal trends saved")
     
     def generate_all_visualizations(self):
         """Generate all EDA visualizations"""
@@ -309,13 +297,9 @@ class EDAVisualizer:
         self.plot_long_tail()
         self.plot_temporal_trends()
         
-        print("\n✓ All visualizations generated successfully!")
+        print("\n All visualizations generated successfully!")
         print(f"  Saved to: {self.output_dir}")
 
-
-# ============================================================================
-# PART 3: FEATURE ENGINEERING
-# ============================================================================
 
 class FeatureEngineer:
     """Engineer features for content-based recommendations"""
@@ -335,7 +319,7 @@ class FeatureEngineer:
         self.genre_features = self.movies['genres'].str.get_dummies('|')
         self.genre_features.index = self.movies['movieId']
         
-        print(f"✓ Genre features: {self.genre_features.shape}")
+        print(f" Genre features: {self.genre_features.shape}")
         return self.genre_features
     
     def create_tag_features(self, max_features=100):
@@ -361,7 +345,7 @@ class FeatureEngineer:
             print("Warning: No tags available for feature engineering")
             self.tag_features = pd.DataFrame()
         
-        print(f"✓ Tag features: {self.tag_features.shape}")
+        print(f" Tag features: {self.tag_features.shape}")
         return self.tag_features
     
     def combine_features(self):
@@ -392,13 +376,8 @@ class FeatureEngineer:
             
             self.combined_features = pd.concat([self.combined_features, genre_only_features])
         
-        print(f"✓ Combined features: {self.combined_features.shape}")
+        print(f" Combined features: {self.combined_features.shape}")
         return self.combined_features
-
-
-# ============================================================================
-# UTILITY FUNCTIONS
-# ============================================================================
 
 def create_user_item_matrix(ratings_df):
     """Create user-item interaction matrix"""
@@ -415,15 +394,3 @@ def get_movie_popularity(ratings_df):
     """Calculate movie popularity"""
     popularity = ratings_df.groupby('movieId').size().to_dict()
     return popularity
-
-
-if __name__ == "__main__":
-    print("ReelSense Part 1: Data Processing Module")
-    # Quick test if run directly
-    try:
-        if os.path.exists('movies.csv'):
-            loader = DataLoader()
-            loader.load_data()
-            print("Test successful")
-    except Exception as e:
-        print(f"Test skipped or failed: {e}")

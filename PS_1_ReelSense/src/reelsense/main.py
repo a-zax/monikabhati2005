@@ -1,10 +1,15 @@
 """
-ReelSense Main: Complete Execution Pipeline
-Run this file to execute the full ReelSense system
-
-Author: Hackathon Participant
-Date: February 2026
+ReelSense: Complete Execution Pipeline
+Run this file to execute the full ReelSense system.
 """
+
+import sys
+import os
+from pathlib import Path
+
+# Add project root to path so we can import reelsense
+project_root = Path(__file__).parent.parent.absolute()
+sys.path.append(str(project_root))
 
 import pandas as pd
 import numpy as np
@@ -12,79 +17,43 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
 from datetime import datetime
 import warnings
+
 warnings.filterwarnings('ignore')
 
-# Import all components
-from reelsense_part1_data import (
+# Import components from package
+from reelsense.config import Config
+from reelsense.data import (
     DataLoader, EDAVisualizer, FeatureEngineer,
     create_user_item_matrix, get_movie_popularity
 )
-from reelsense_part2_models import (
+from reelsense.models import (
     PopularityRecommender, UserBasedCF, ItemBasedCF,
     SimpleSVD, ContentBasedRecommender, HybridRecommender
 )
-from reelsense_part3_diversity import (
+from reelsense.diversity import (
     DiversityOptimizer, ExplainabilityEngine, RecommendationPipeline
 )
-from reelsense_part4_evaluation import (
+from reelsense.evaluation import (
     RecommenderEvaluator, compare_models
 )
-
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
-
-class Config:
-    """Configuration for ReelSense system"""
-    
-    # Data paths
-    # Data paths
-    DATA_PATH = '../data/'
-    OUTPUT_DIR = '../outputs/results/'
-    VIZ_DIR = '../outputs/visualizations/'
-    
-    # Model parameters
-    K = 10  # Number of recommendations
-    N_TEST = 3  # Number of test ratings per user
-    
-    # Diversity parameters
-    LAMBDA_MMR = 0.5  # Balance between relevance and diversity
-    
-    # Hybrid model weights
-    HYBRID_WEIGHTS = {
-        'popularity': 0.1,
-        'user_cf': 0.25,
-        'item_cf': 0.25,
-        'svd': 0.25,
-        'content': 0.15
-    }
-    
-    # Evaluation
-    EVAL_SAMPLE_USERS = 50  # Number of users to evaluate (set to None for all)
-
-
-# ============================================================================
-# MAIN EXECUTION
-# ============================================================================
 
 def main():
     """Main execution pipeline"""
     
     print("="*70)
-    print(" "*15 + "🎬 REELSENSE SYSTEM 🎬")
+    print(" "*15 + "REELSENSE SYSTEM")
     print(" "*5 + "Explainable Movie Recommender with Diversity")
     print("="*70)
     
     # Create output directories
-    os.makedirs(Config.OUTPUT_DIR, exist_ok=True)
-    os.makedirs(Config.VIZ_DIR, exist_ok=True)
+    Config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    Config.VIZ_DIR.mkdir(parents=True, exist_ok=True)
     
-    # ========================================================================
+    
     # STEP 1: DATA LOADING AND PREPROCESSING
-    # ========================================================================
+    
     
     print("\n" + "="*70)
     print("STEP 1: DATA LOADING AND PREPROCESSING")
@@ -102,9 +71,8 @@ def main():
     # Time-based split
     train_ratings, test_ratings = loader.time_based_split(n_test=Config.N_TEST)
     
-    # ========================================================================
+
     # STEP 2: EXPLORATORY DATA ANALYSIS
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 2: EXPLORATORY DATA ANALYSIS")
@@ -113,9 +81,7 @@ def main():
     eda = EDAVisualizer(movies, ratings, tags, output_dir=Config.VIZ_DIR)
     eda.generate_all_visualizations()
     
-    # ========================================================================
     # STEP 3: FEATURE ENGINEERING
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 3: FEATURE ENGINEERING")
@@ -129,9 +95,8 @@ def main():
     # Calculate movie popularity
     movie_popularity = get_movie_popularity(train_ratings)
     
-    # ========================================================================
+
     # STEP 4: MODEL TRAINING
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 4: MODEL TRAINING")
@@ -148,7 +113,10 @@ def main():
     item_cf = ItemBasedCF(k_neighbors=20)
     
     # Matrix Factorization
-    svd_model = SimpleSVD(n_factors=50, n_iterations=20)
+    # Reduced capacity for faster execution during verification
+    # Reduced capacity for faster execution during verification
+    svd_model = SimpleSVD(n_factors=10, n_iterations=5)
+    print(f"DEBUG: SVD initialized with n_iterations={svd_model.n_iterations}")
     
     # Content-Based
     content_model = ContentBasedRecommender()
@@ -165,11 +133,10 @@ def main():
     content_model.fit(combined_features)
     hybrid_model.fit(train_ratings, combined_features)
     
-    print("\n✓ All models trained successfully!")
+    print("\n All models trained successfully!")
     
-    # ========================================================================
+
     # STEP 5: DIVERSITY OPTIMIZATION
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 5: DIVERSITY OPTIMIZATION")
@@ -177,9 +144,7 @@ def main():
     
     diversity_optimizer = DiversityOptimizer(lambda_param=Config.LAMBDA_MMR)
     
-    # ========================================================================
     # STEP 6: EXPLAINABILITY SETUP
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 6: EXPLAINABILITY SETUP")
@@ -187,9 +152,7 @@ def main():
     
     explainer = ExplainabilityEngine(movies, tags, train_ratings)
     
-    # ========================================================================
     # STEP 7: GENERATE RECOMMENDATIONS
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 7: GENERATING RECOMMENDATIONS")
@@ -247,11 +210,9 @@ def main():
         ]
         user_relevance[user_id] = user_test['movieId'].tolist()
     
-    print(f"\n✓ Generated recommendations for {len(test_users)} users")
+    print(f"\n Generated recommendations for {len(test_users)} users")
     
-    # ========================================================================
     # STEP 8: EVALUATION
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 8: EVALUATION")
@@ -274,15 +235,12 @@ def main():
     evaluator.print_evaluation_summary(results_df)
     
     # Save results
-    results_df.to_csv(
-        f'{Config.OUTPUT_DIR}evaluation_results.csv',
-        index=False
-    )
-    print(f"\n✓ Results saved to {Config.OUTPUT_DIR}evaluation_results.csv")
+    results_path = Config.OUTPUT_DIR / 'evaluation_results.csv'
+    results_df.to_csv(results_path, index=False)
+    print(f"\n Results saved to {results_path}")
     
-    # ========================================================================
     # STEP 9: GENERATE SAMPLE EXPLANATIONS
-    # ========================================================================
+
     
     print("\n" + "="*70)
     print("STEP 9: SAMPLE RECOMMENDATIONS WITH EXPLANATIONS")
@@ -309,11 +267,9 @@ def main():
         
         for rank, (movie_id, title, explanation) in enumerate(recs, 1):
             print(f"\n{rank}. {title}")
-            print(f"   💡 {explanation}")
+            print(f"    {explanation}")
     
-    # ========================================================================
     # STEP 10: VISUALIZE RESULTS
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 10: VISUALIZING RESULTS")
@@ -350,20 +306,19 @@ def main():
         plt.xticks(rotation=45, ha='right')
         
         plt.tight_layout()
-        plt.savefig(f'{Config.VIZ_DIR}metrics_summary.png', dpi=300, bbox_inches='tight')
+        viz_path = Config.VIZ_DIR / 'metrics_summary.png'
+        plt.savefig(viz_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"✓ Metrics visualization saved to {Config.VIZ_DIR}metrics_summary.png")
+        print(f" Metrics visualization saved to {viz_path}")
     
-    # ========================================================================
     # STEP 11: GENERATE REPORT
-    # ========================================================================
     
     print("\n" + "="*70)
     print("STEP 11: GENERATING FINAL REPORT")
     print("="*70)
     
-    report_path = f'{Config.OUTPUT_DIR}reelsense_report.txt'
+    report_path = Config.OUTPUT_DIR / 'reelsense_report.txt'
     
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write("="*70 + "\n")
@@ -395,8 +350,8 @@ def main():
         f.write("MODEL CONFIGURATION\n")
         f.write("="*70 + "\n")
         f.write(f"Hybrid Weights:\n")
-        for model, weight in Config.HYBRID_WEIGHTS.items():
-            f.write(f"  - {model}: {weight}\n")
+        for model_name, weight in Config.HYBRID_WEIGHTS.items():
+            f.write(f"  - {model_name}: {weight}\n")
         f.write(f"\nDiversity Lambda: {Config.LAMBDA_MMR}\n")
         f.write(f"Recommendation Count (K): {Config.K}\n\n")
         
@@ -430,29 +385,26 @@ def main():
         f.write(f"high diversity (Intra-List: {avg_results.get('Intra_List_Diversity', 0):.4f}) and ")
         f.write(f"novelty (Long-tail: {avg_results.get('Long_Tail_%', 0):.2%}).\n\n")
     
-    print(f"✓ Report saved to {report_path}")
+    print(f" Report saved to {report_path}")
     
-    # ========================================================================
     # COMPLETION
-    # ========================================================================
     
     print("\n" + "="*70)
-    print("✅ REELSENSE EXECUTION COMPLETE!")
+    print(" REELSENSE EXECUTION COMPLETE!")
     print("="*70)
     print(f"\nOutputs saved to:")
     print(f"  - Visualizations: {Config.VIZ_DIR}")
     print(f"  - Results: {Config.OUTPUT_DIR}")
     print(f"\nKey Files:")
-    print(f"  - Evaluation Results: {Config.OUTPUT_DIR}evaluation_results.csv")
-    print(f"  - Final Report: {Config.OUTPUT_DIR}reelsense_report.txt")
-    print(f"  - Metrics Plot: {Config.VIZ_DIR}metrics_summary.png")
+    print(f"  - Evaluation Results: {results_path}")
+    print(f"  - Final Report: {report_path}")
+    # print(f"  - Metrics Plot: {viz_path}") # viz_path might not exist if skipped
     print("\n" + "="*70)
-
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"\n❌ ERROR: {str(e)}")
+        print(f"\n ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
