@@ -52,18 +52,18 @@ def evaluate_all(model, dataloader, tokenizer, device):
         tokenizer.pad_token = tokenizer.eos_token
             
             # Decode generated reports
-            for i in range(len(generated_ids)):
-                gen_text = tokenizer.decode(
-                    generated_ids[i], 
-                    skip_special_tokens=True
-                )
-                ref_text = tokenizer.decode(
-                    batch['report_ids'][i], 
-                    skip_special_tokens=True
-                )
+        for i in range(len(generated_ids)):
+            gen_text = tokenizer.decode(
+                generated_ids[i], 
+                skip_special_tokens=True
+            )
+            ref_text = tokenizer.decode(
+                batch['report_ids'][i], 
+                skip_special_tokens=True
+            )
                 
-                generated_reports.append(gen_text)
-                reference_reports.append(ref_text)
+            generated_reports.append(gen_text)
+            reference_reports.append(ref_text)
             
             # Here you would typically collect disease predictions if you had ground truth labels
             # for classification evaluation.
