@@ -271,4 +271,4 @@ Compare `outputs/evaluation_results.csv` across runs to see diversity-accuracy t
 
 ---
 
-**Contact:** monikabhati2005 | **Repository:** [GitHub Link TBD]
+**Contact:** monikabhati2005 | **Repository:** [GitHub](https://github.com/a-zax/monikabhati2005/tree/main/PS_1_ReelSense)

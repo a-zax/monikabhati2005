@@ -458,4 +458,4 @@ pip install PySide6==6.5.0
 
 ---
 
-**Contact:** monikabhati2005 | **Repository:** [GitHub Link TBD] | **Demo:** [Video Link TBD]
+**Contact:** monikabhati2005 | **Repository:** [GitHub](https://github.com/a-zax/monikabhati2005/tree/main/PS_2_Cognitive_Radiology_Report)
