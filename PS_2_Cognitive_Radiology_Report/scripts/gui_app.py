@@ -6,9 +6,9 @@ import numpy as np
 from PIL import Image
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QLabel, QPushButton, QFileDialog, QTextEdit, QProgressBar, 
-                               QFrame, QSplitter, QMessageBox, QGraphicsOpacityEffect)
-from PySide6.QtCore import Qt, QThread, Signal, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QPixmap, QFont
+                               QFrame, QSplitter, QMessageBox, QGraphicsOpacityEffect, QGraphicsDropShadowEffect)
+from PySide6.QtCore import Qt, QThread, Signal, QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtGui import QPixmap, QFont, QColor, QPainter, QPen, QBrush
 from transformers import AutoTokenizer
 
 # Add project root to path
@@ -16,6 +16,33 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from models.cognitive_model import CognitiveReportGenerator
 from models.dataset import get_transforms
+
+from transformers import AutoTokenizer
+
+class ProgressRing(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(60, 60)
+        self.progress = 0
+        self.setVisible(False)
+
+    def set_progress(self, val):
+        self.progress = val
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        rect = self.rect().adjusted(5, 5, -5, -5)
+        pen = QPen(QColor("#e2e8f0"), 4)
+        painter.setPen(pen)
+        painter.drawEllipse(rect)
+        
+        pen.setColor(QColor("#2563eb"))
+        painter.setPen(pen)
+        span_angle = -int(self.progress * 3.6 * 16)
+        painter.drawArc(rect, 90 * 16, span_angle)
 
 # --- Professional Light Theme ---
 MODERN_THEME = """
@@ -107,13 +134,32 @@ QProgressBar {
     color: transparent; 
 }
 QProgressBar#LoaderProgress {
-    height: 40px;
-    border-radius: 8px;
-    background-color: #eff6ff;
+    height: 6px;
+    border-radius: 3px;
+    background-color: #f1f5f9;
 }
-QProgressBar::chunk {
-    border-radius: 6px;
+QProgressBar#LoaderProgress::chunk {
+    border-radius: 3px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563eb, stop:0.5 #60a5fa, stop:1 #2563eb);
+}
+QFrame#SegmentRail {
+    background-color: transparent;
+}
+QFrame#Segment {
+    background-color: #f1f5f9;
+    border-radius: 3px;
+    min-width: 12px;
+    max-width: 12px;
+    min-height: 8px;
+    max-height: 8px;
+}
+QFrame#Segment[active="true"] {
     background-color: #3b82f6;
+}
+QLabel#HeartbeatPulse {
+    background-color: transparent;
+    background: qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0 rgba(59, 130, 246, 0.4), stop:1 rgba(59, 130, 246, 0));
+    border: none;
 }
 """
 
@@ -221,7 +267,7 @@ class MainWindow(QMainWindow):
         sep.setStyleSheet("color: #cbd5e1; font-size: 24px; font-weight: 300;")
         header_layout.addWidget(sep)
         
-        team_name = QLabel("Team: monikabhati2005")
+        team_name = QLabel("monikabhati2005")
         team_name.setObjectName("TeamLabel")
         header_layout.addWidget(team_name)
         
@@ -242,10 +288,11 @@ class MainWindow(QMainWindow):
         self.load_model_btn.setObjectName("Secondary")
         self.loader_layout.addWidget(self.load_model_btn)
         
+        # The Neural Ribbon (Indeterminate Progress)
         self.loader_progress = QProgressBar()
         self.loader_progress.setObjectName("LoaderProgress")
         self.loader_progress.setRange(0, 0)
-        self.loader_progress.setFixedWidth(200)
+        self.loader_progress.setFixedWidth(240)
         self.loader_progress.setVisible(False)
         self.loader_layout.addWidget(self.loader_progress)
         
@@ -254,7 +301,28 @@ class MainWindow(QMainWindow):
         
         main_layout.addWidget(header_container)
 
-        # --- No Global Progress needed anymore ---
+        # --- Segmented Diagnostic Rail (Brainstorm Item 2A) ---
+        self.rail_container = QFrame()
+        self.rail_container.setObjectName("SegmentRail")
+        self.rail_layout = QHBoxLayout(self.rail_container)
+        self.rail_layout.setContentsMargins(0, 0, 0, 0)
+        self.rail_layout.setSpacing(4)
+        self.segments = []
+        for _ in range(14):
+            s = QFrame()
+            s.setObjectName("Segment")
+            s.setProperty("active", "false")
+            self.rail_layout.addWidget(s)
+            self.segments.append(s)
+        self.rail_container.setVisible(False)
+        main_layout.addWidget(self.rail_container, alignment=Qt.AlignCenter)
+
+        # --- Scan Heartbeat Anchor ---
+        self.pulse_anchor = QLabel()
+        self.pulse_anchor.setObjectName("HeartbeatPulse")
+        self.pulse_anchor.setFixedSize(80, 80)
+        self.pulse_anchor.setVisible(False)
+        # We will position this dynamically or use it as a subtle overlay
         # WorkArea (Splitter)
         splitter = QSplitter(Qt.Horizontal)
         splitter.setHandleWidth(20)
@@ -320,12 +388,31 @@ class MainWindow(QMainWindow):
         self.generate_btn.clicked.connect(self.start_generation)
         main_layout.addWidget(self.generate_btn)
         
+        # Progress Ring Overlay
+        self.ring = ProgressRing(self.generate_btn)
+        self.ring.move(10, 0) # Center vertically in the button
+        # Anchor for progress ring to better align
+        self.ring.setFixedSize(50, 50)
+        self.ring.move(15, 5)
+        
         # Status Bar
         self.status_bar = QLabel("System Initialized | Team: monikabhati2005")
         self.status_bar.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: 600;")
         main_layout.addWidget(self.status_bar)
 
-    def fade_in(self, widget, duration=600):
+    def fade_in(self, widget, duration=600, delay=0):
+        # 1. Clean up stale animations
+        self._anims = [a for a in self._anims if a.targetObject() is not None]
+        
+        # 2. Stop any animation currently targeting this widget's existing effect
+        old_effect = widget.graphicsEffect()
+        if old_effect:
+            for anim in self._anims[:]:
+                if anim.targetObject() == old_effect:
+                    anim.stop()
+                    if anim in self._anims: self._anims.remove(anim)
+
+        # 3. Apply new effect and animation
         effect = QGraphicsOpacityEffect()
         widget.setGraphicsEffect(effect)
         anim = QPropertyAnimation(effect, b"opacity")
@@ -333,6 +420,61 @@ class MainWindow(QMainWindow):
         anim.setStartValue(0)
         anim.setEndValue(1)
         anim.setEasingCurve(QEasingCurve.OutCubic)
+        
+        if delay > 0:
+            QTimer.singleShot(delay, anim.start)
+        else:
+            anim.start()
+        self._anims.append(anim)
+
+    def heartbeat_pulse(self):
+        if not self.pulse_anchor.isVisible(): return
+        
+        # Ensure effect exists before animating
+        effect = self.pulse_anchor.graphicsEffect()
+        if not effect or not isinstance(effect, QGraphicsOpacityEffect):
+            effect = QGraphicsOpacityEffect()
+            self.pulse_anchor.setGraphicsEffect(effect)
+            
+        # Scale animation that keeps center
+        anim = QPropertyAnimation(self.pulse_anchor, b"geometry")
+        curr = self.pulse_anchor.geometry()
+        
+        anim.setDuration(1000)
+        anim.setStartValue(curr)
+        # Grow by 15px on all sides
+        end_rect = curr.adjusted(-15, -15, 15, 15)
+        anim.setEndValue(end_rect)
+        anim.setEasingCurve(QEasingCurve.OutSine)
+        anim.setLoopCount(-1)
+        
+        opacity_anim = QPropertyAnimation(effect, b"opacity")
+        opacity_anim.setDuration(1000)
+        opacity_anim.setStartValue(0.4)
+        opacity_anim.setEndValue(0.0) # Fade out as it expands
+        opacity_anim.setEasingCurve(QEasingCurve.OutSine)
+        opacity_anim.setLoopCount(-1)
+        
+        anim.start()
+        opacity_anim.start()
+        self._anims.extend([anim, opacity_anim])
+
+    def set_shadow_depth(self, widget, color="#e2e8f0", radius=10):
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(radius)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(color))
+        widget.setGraphicsEffect(shadow)
+        return shadow
+
+    def animate_shadow(self, shadow, start_radius, end_radius, duration=1000):
+        anim = QPropertyAnimation(shadow, b"blurRadius")
+        anim.setDuration(duration)
+        anim.setStartValue(start_radius)
+        anim.setEndValue(end_radius)
+        anim.setEasingCurve(QEasingCurve.InOutQuad)
+        anim.setLoopCount(-1)
         anim.start()
         self._anims.append(anim)
 
@@ -389,8 +531,31 @@ class MainWindow(QMainWindow):
 
     def start_generation(self):
         self.generate_btn.setEnabled(False)
-        self.generate_btn.setText("ANALYZING SCAN...")
-        self.loader_progress.setVisible(True) # Reuse this for scanning too
+        self.generate_btn.setText("DIAGNOSTIC CORE COGNITION...")
+        self.loader_progress.setVisible(True)
+        self.rail_container.setVisible(True)
+        
+        # Shadow Motion (Brainstorm Item 5 - Shadow Motion)
+        for card in [self.image_label.parent(), self.report_text.parent()]:
+            if hasattr(card, "graphicsEffect"):
+                 s = self.set_shadow_depth(card, color="#3b82f6", radius=20)
+                 self.animate_shadow(s, 20, 40)
+
+        # Position Heartbeat in center of image
+        self.pulse_anchor.setParent(self.image_label)
+        self.pulse_anchor.move(self.image_label.width()//2 - 40, self.image_label.height()//2 - 40)
+        self.pulse_anchor.setVisible(True)
+        if not self.pulse_anchor.graphicsEffect():
+            self.pulse_anchor.setGraphicsEffect(QGraphicsOpacityEffect())
+        self.heartbeat_pulse()
+
+        # Step through segments simulation (Brainstorm Item 2A)
+        self.simulate_rail_progress()
+        
+        # Circular Ring simulation (Brainstorm Item 2C)
+        self.ring.setVisible(True)
+        self.simulate_ring_progress()
+
         self.report_text.clear()
         self.clear_findings()
         self.inf = InferenceThread(self.model, self.current_image_path, self.enc_tokenizer, self.dec_tokenizer, self.device)
@@ -398,8 +563,32 @@ class MainWindow(QMainWindow):
         self.inf.error.connect(self.on_inf_error)
         self.inf.start()
 
+    def simulate_rail_progress(self, idx=0):
+        if idx >= len(self.segments) or not self.rail_container.isVisible():
+            return
+        self.segments[idx].setProperty("active", "true")
+        self.segments[idx].style().unpolish(self.segments[idx])
+        self.segments[idx].style().polish(self.segments[idx])
+        QTimer.singleShot(150, lambda: self.simulate_rail_progress(idx + 1))
+
+    def simulate_ring_progress(self, val=0):
+        if val > 100 or not self.ring.isVisible():
+            return
+        self.ring.set_progress(val)
+        QTimer.singleShot(50, lambda: self.simulate_ring_progress(val + 1))
+
     def on_fin(self, report, probs):
         self.loader_progress.setVisible(False)
+        self.pulse_anchor.setVisible(False)
+        self.rail_container.setVisible(False)
+        self.ring.setVisible(False)
+        
+        # Reset segments
+        for s in self.segments:
+            s.setProperty("active", "false")
+            s.style().unpolish(s)
+            s.style().polish(s)
+            
         self.generate_btn.setEnabled(True)
         self.generate_btn.setText("EXECUTE COMPLETE SCAN")
         
@@ -410,10 +599,13 @@ class MainWindow(QMainWindow):
         elif "INDINGS:" in processed_report:
             processed_report = processed_report.replace("INDINGS:", "FINDINGS:")
             
+        # Staggered entrance for report
+        self.fade_in(self.report_text, duration=800)
         self.report_text.setText(processed_report)
-        self.fade_in(self.report_text)
+        
+        # Staggered findings (triggered inside display_findings)
         self.display_findings(probs)
-        self.status_bar.setText("Scan complete. Analysis results displayed.")
+        self.status_bar.setText("Scan complete. Diagnostic insights staggered for review.")
 
     def on_inf_error(self, err):
         self.loader_progress.setVisible(False)
@@ -463,7 +655,8 @@ class MainWindow(QMainWindow):
                 l.addWidget(val)
                 
                 self.findings_layout.addWidget(row)
-                self.fade_in(row, duration=400 + (i*150))
+                # Significant stagger for "Medical Narrative" reveal
+                self.fade_in(row, duration=600, delay=500 + (i * 250))
         
         if not found:
             lbl = QLabel("No clinical anomalies identified within high confidence spectrum.")

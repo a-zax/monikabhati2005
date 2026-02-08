@@ -140,6 +140,7 @@ class CognitiveReportGenerator(nn.Module):
         # Generate using GPT-2's generate method
         generated_ids = self.decoder.generate(
             encoder_hidden_states=encoder_hidden,
+            encoder_attention_mask=torch.ones(encoder_hidden.shape[:2], device=encoder_hidden.device),
             max_length=max_length,
             num_beams=num_beams,
             early_stopping=True,
