@@ -16,50 +16,34 @@ The Cognitive Radiology Assistant generates comprehensive diagnostic reports fro
 
 ## 🏗️ System Architecture
 
+```mermaid
+flowchart TD
+    Input["🏥 INPUT: Chest X-Ray (224×224)"] --> PROFA
+    
+    PROFA["📸 MODULE 1: PRO-FA<br/>(Hierarchical Visual Alignment)<br/>━━━━━━━━━━━━━━━━━━━━<br/>Vision Transformer (ViT-B/16)<br/>→ Multi-Granular Features<br/>━━━━━━━━━━━━━━━━━━━━<br/>• Pixel-level: 196 patches × 512-dim<br/>• Region-level: 49 regions × 512-dim<br/>• Organ-level: 1 CLS token × 512-dim"] --> MIXMLP
+    
+    MIXMLP["🔬 MODULE 2: MIX-MLP<br/>(Knowledge-Enhanced Classification)<br/>━━━━━━━━━━━━━━━━━━━━<br/>Organ features → MLP → 14 Pathology Scores<br/>━━━━━━━━━━━━━━━━━━━━<br/>Diseases: No Finding, Cardiomegaly, Edema,<br/>Consolidation, Pneumonia, Atelectasis,<br/>Pneumothorax, Pleural Effusion, ...<br/>Output: p ∈ [0,1]^14"] --> Disease["🧬 Disease Embeddings<br/>(Linear projection<br/>to 512-dim)"]
+    
+    PROFA --> ImageFeat["🖼️ Image Features"]
+    
+    Clinical["💬 Clinical Indication<br/>(DistilBERT encoding)"] --> RCTA
+    ImageFeat --> RCTA
+    Disease --> RCTA
+    
+    RCTA["🔺 MODULE 3: RCTA<br/>(Recursive Cognitive Triangular Attention)<br/>━━━━━━━━━━━━━━━━━━━━<br/>Tri-Modal Attention<br/>Image ⊗ Clinical ⊗ Disease<br/>━━━━━━━━━━━━━━━━━━━━<br/>Q_Image → Attend to<br/>[Clinical Indication, Disease Predictions]<br/>━━━━━━━━━━━━━━━━━━━━<br/>Verified Features =<br/>LayerNorm(Image + Attn_Clinical + Attn_Disease)"] --> Decoder
+    
+    Decoder["📝 DECODER: DistilGPT2<br/>with Cross-Attention<br/>━━━━━━━━━━━━━━━━━━━━<br/>Verified Features → GPT-2 Generate<br/>(Beam Search, k=4)<br/>━━━━━━━━━━━━━━━━━━━━<br/>Output: 'FINDINGS: The cardiomediastinal<br/>silhouette is normal...'"]
+    
+    style PROFA fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style MIXMLP fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style RCTA fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style Decoder fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style Input fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style Clinical fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style Disease fill:#f1f8e9,stroke:#689f38,stroke-width:2px
+    style ImageFeat fill:#e0f7fa,stroke:#00acc1,stroke-width:2px
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         INPUT: Chest X-Ray (224×224)                 │
-└─────────────────────────────────────────────────────────────────────┘
-                                   ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│   MODULE 1: PRO-FA (Hierarchical Visual Alignment)                  │
-│   Vision Transformer (ViT-B/16) → Multi-Granular Features           │
-├─────────────────────────────────────────────────────────────────────┤
-│   • Pixel-level:  196 patches × 512-dim    [Fine-grained]          │
-│   • Region-level: 49 regions × 512-dim     [Mid-level anatomy]     │
-│   • Organ-level:  1 CLS token × 512-dim    [Global context]        │
-└─────────────────────────────────────────────────────────────────────┘
-                                   ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│   MODULE 2: MIX-MLP (Knowledge-Enhanced Disease Classification)     │
-│   Organ features → Multi-Layer Perceptron → 14 Pathology Scores     │
-├─────────────────────────────────────────────────────────────────────┤
-│   Diseases: No Finding, Cardiomegaly, Edema, Consolidation,        │
-│   Pneumonia, Atelectasis, Pneumothorax, Pleural Effusion, ...      │
-│   Output: p ∈ [0,1]^14 (sigmoid probabilities)                     │
-└─────────────────────────────────────────────────────────────────────┘
-                      ↓                           ↓
-         ┌─────────────────┐          ┌────────────────────┐
-         │ Clinical        │          │ Disease            │
-         │ Indication      │          │ Embeddings         │
-         │ (DistilBERT)    │          │ (Linear proj to    │
-         │                 │          │  512-dim)          │
-         └─────────────────┘          └────────────────────┘
-                      ↓                           ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│   MODULE 3: RCTA (Recursive Cognitive Triangular Attention)         │
-│   Tri-Modal Attention: Image ⊗ Clinical ⊗ Disease                   │
-├─────────────────────────────────────────────────────────────────────┤
-│   Q_Image → Attend to [Clinical Indication, Disease Predictions]    │
-│   Verified Features = LayerNorm(Image + Attn_Clinical + Attn_Disease)│
-└─────────────────────────────────────────────────────────────────────┘
-                                   ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│               DECODER: DistilGPT2 with Cross-Attention               │
-│   Verified Features → GPT-2 Generate (Beam Search, k=4)             │
-│   Output: "FINDINGS: The cardiomediastinal silhouette is normal..." │
-└─────────────────────────────────────────────────────────────────────┘
-```
+
 
 ---
 
