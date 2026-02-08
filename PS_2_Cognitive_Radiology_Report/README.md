@@ -381,7 +381,8 @@ The interactive GUI (`scripts/gui_app.py`) features:
 python scripts/gui_app.py
 ```
 
-**Demo Video Script:** See [`DEMO_VIDEO_SCRIPT.md`](DEMO_VIDEO_SCRIPT.md) for 2-minute screencast guide.
+
+---
 
 ---
 
