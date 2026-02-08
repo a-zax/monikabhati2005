@@ -106,7 +106,6 @@ PS_2_Cognitive_Radiology_Report/
 ├── evaluation/
 │   └── evaluate.py              # CheXpert F1, RadGraph F1, CIDEr, BLEU-4
 ├── scripts/
-│   ├── download_data.sh         # Dataset download scripts
 │   ├── download_with_hub.py     # HuggingFace dataset download
 │   ├── download_mimic.py        # MIMIC-CXR download
 │   ├── preprocess_iu_xray.py    # IU X-Ray preprocessing
@@ -115,12 +114,12 @@ PS_2_Cognitive_Radiology_Report/
 │   └── gui_app.py               # Interactive GUI demo (PySide6)
 ├── data/                        # Dataset directory (git-ignored)
 ├── checkpoints/                 # Trained model weights
+│   ├── best_model.pth
+│   ├── latest_model.pth
 ├── notebooks/
-│   ├── Run_on_Colab.ipynb       # Google Colab training notebook
-│   └── Run_on_Kaggle.ipynb      # Kaggle P100 GPU notebook
+│   ├── ps2-cognitive-radiology-report-generation.ipynb
 ├── requirements.txt             # Python dependencies
 ├── pack_project.py              # Zip codebase for submission
-├── submission.txt               # Submission links file
 └── README.md                    # This file
 ```
 
