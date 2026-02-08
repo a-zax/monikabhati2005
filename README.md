@@ -23,7 +23,7 @@ Navigate to the respective directories for detailed installation and usage instr
 
 ```bash
 # Clone the repository
-git clone <repo_url>
+git clone https://github.com/a-zax/monikabhati2005.git
 
 # For PS 1
 cd PS_1_ReelSense
