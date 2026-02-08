@@ -189,13 +189,27 @@ USER 590 - Top 10 Recommendations:
 
 ## 📈 Visualizations
 
-All plots saved to `outputs/visualizations/`:
+All plots are automatically generated and saved to `outputs/visualizations/`:
 
-- **`rating_distribution.png`**: Distribution of user ratings (skewed toward 4-5 stars)
-- **`genre_analysis.png`**: Most popular genres and average ratings
-- **`long_tail_analysis.png`**: Power law distribution of movie popularity
-- **`temporal_trends.png`**: Rating trends over time
-- **`metrics_summary.png`**: Side-by-side ranking vs diversity metrics
+### 1. Data Insights
+![Rating Distribution](outputs/visualizations/rating_distribution.png)  
+*Figure 1: Distribution of user ratings (skewed toward 4-5 stars)*
+
+![User Activity](outputs/visualizations/user_activity.png)  
+*Figure 2: User activity patterns showing engagement distribution*
+
+![Temporal Trends](outputs/visualizations/temporal_trends.png)  
+*Figure 3: Rating trends over time across the MovieLens dataset*
+
+### 2. Model Performance
+![Metrics Summary](outputs/visualizations/metrics_summary.png)  
+*Figure 4: Side-by-side comparison of Ranking vs Diversity metrics*
+
+![Genre Analysis](outputs/visualizations/genre_analysis.png)  
+*Figure 5: Most popular genres and average ratings analysis*
+
+![Long-tail Analysis](outputs/visualizations/long_tail_analysis.png)  
+*Figure 6: Power law distribution of movie popularity (Long-tail coverage: 41.6%)*
 
 ---
 
