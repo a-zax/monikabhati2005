@@ -17,88 +17,71 @@ The Cognitive Radiology Assistant generates comprehensive diagnostic reports fro
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart TB
-    subgraph Input [" "]
-        XRay[Chest X-Ray Image<br/>224 x 224 pixels]
-    end
+flowchart LR
+    A[Chest X-Ray<br/>224x224] --> B[Vision Transformer<br/>ViT-B/16]
     
-    subgraph Module1 ["MODULE 1: PRO-FA - Progressive Feature Alignment"]
-        ViT[Vision Transformer<br/>ViT-B/16]
-        Pixel[Pixel Level<br/>196 patches x 512-dim]
-        Region[Region Level<br/>49 regions x 512-dim]
-        Organ[Organ Level<br/>1 CLS token x 512-dim]
-        
-        ViT --> Pixel
-        ViT --> Region
-        ViT --> Organ
-    end
+    B --> C1[Pixel Features<br/>196 x 512]
+    B --> C2[Region Features<br/>49 x 512]
+    B --> C3[Organ Features<br/>1 x 512]
     
-    subgraph Module2 ["MODULE 2: MIX-MLP - Disease Classification"]
-        MLP[Multi-Layer Perceptron]
-        Diseases[14 Pathology Scores<br/>Cardiomegaly, Edema,<br/>Pneumonia, Atelectasis, etc.]
-        
-        MLP --> Diseases
-    end
+    C3 --> D[Disease Classifier<br/>MLP Network]
+    D --> E[14 Disease Scores]
     
-    subgraph Module3 ["MODULE 3: RCTA - Triangular Attention"]
-        Clinical[Clinical Indication<br/>DistilBERT Encoder]
-        ImgAttn[Image Features]
-        DiseaseEmb[Disease Embeddings]
-        TriAttn[Tri-Modal Attention<br/>Image ⊗ Clinical ⊗ Disease]
-        Verified[Verified Features<br/>LayerNorm Fusion]
-        
-        ImgAttn --> TriAttn
-        Clinical --> TriAttn
-        DiseaseEmb --> TriAttn
-        TriAttn --> Verified
-    end
+    C1 --> F[Image<br/>Embeddings]
+    C2 --> F
     
-    subgraph Output [" "]
-        Decoder[DistilGPT2 Decoder<br/>Beam Search]
-        Report[Medical Report<br/>FINDINGS + IMPRESSION]
-        
-        Decoder --> Report
-    end
+    G[Clinical Text] --> H[Text Encoder<br/>DistilBERT]
+    H --> I[Clinical<br/>Embeddings]
     
-    XRay --> ViT
-    Organ --> MLP
-    Diseases --> DiseaseEmb
-    Pixel --> ImgAttn
-    Region --> ImgAttn
-    Verified --> Decoder
+    E --> J[Disease<br/>Embeddings]
     
-    style Module1 fill:#E3F2FD,stroke:#1976D2,stroke-width:4px,color:#000
-    style Module2 fill:#F3E5F5,stroke:#7B1FA2,stroke-width:4px,color:#000
-    style Module3 fill:#FFF3E0,stroke:#F57C00,stroke-width:4px,color:#000
-    style Input fill:#FAFAFA,stroke:#757575,stroke-width:2px
-    style Output fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+    F --> K[Triangular Attention<br/>RCTA Module]
+    I --> K
+    J --> K
     
-    style ViT fill:#BBDEFB,stroke:#1976D2,stroke-width:2px
-    style Pixel fill:#BBDEFB,stroke:#1976D2,stroke-width:2px
-    style Region fill:#BBDEFB,stroke:#1976D2,stroke-width:2px
-    style Organ fill:#BBDEFB,stroke:#1976D2,stroke-width:2px
+    K --> L[Verified<br/>Features]
+    L --> M[Report Generator<br/>DistilGPT2]
+    M --> N[Medical Report<br/>FINDINGS + IMPRESSION]
     
-    style MLP fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px
-    style Diseases fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px
+    style A fill:#E8F4F8,stroke:#0277BD,stroke-width:2px
+    style B fill:#B3E5FC,stroke:#01579B,stroke-width:3px
+    style C1 fill:#B3E5FC,stroke:#01579B,stroke-width:2px
+    style C2 fill:#B3E5FC,stroke:#01579B,stroke-width:2px
+    style C3 fill:#B3E5FC,stroke:#01579B,stroke-width:2px
     
-    style Clinical fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
-    style ImgAttn fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
-    style DiseaseEmb fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
-    style TriAttn fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
-    style Verified fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
+    style D fill:#E1BEE7,stroke:#6A1B9A,stroke-width:3px
+    style E fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px
     
-    style Decoder fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
-    style Report fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+    style F fill:#FFE0B2,stroke:#E65100,stroke-width:2px
+    style G fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+    style H fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+    style I fill:#FFE0B2,stroke:#E65100,stroke-width:2px
+    style J fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px
+    
+    style K fill:#FFCCBC,stroke:#D84315,stroke-width:4px
+    style L fill:#FFCCBC,stroke:#D84315,stroke-width:2px
+    
+    style M fill:#C8E6C9,stroke:#2E7D32,stroke-width:3px
+    style N fill:#A5D6A7,stroke:#1B5E20,stroke-width:2px
 ```
 
-**Module Details:**
+**Architecture Overview:**
 
-| Module | Component | Function | Output Dimensions |
-|--------|-----------|----------|-------------------|
-| **PRO-FA** | Vision Transformer | Hierarchical feature extraction | Pixel: 196×512, Region: 49×512, Organ: 1×512 |
-| **MIX-MLP** | Neural Classifier | 14-disease pathology prediction | 14 probabilities [0,1] |
-| **RCTA** | Triangular Attention | Tri-modal fusion (Image⊗Clinical⊗Disease) | 512-dim verified features |
+| Stage | Component | Description | Output |
+|-------|-----------|-------------|--------|
+| **Input** | Chest X-Ray | 224×224 grayscale image | Raw image tensor |
+| **MODULE 1: PRO-FA** | Vision Transformer | Hierarchical feature extraction | Pixel (196×512), Region (49×512), Organ (1×512) |
+| **MODULE 2: MIX-MLP** | Disease Classifier | 14-pathology prediction | Disease probabilities [0,1]^14 |
+| **Clinical Encoding** | DistilBERT | Clinical indication processing | 512-dim text embedding |
+| **MODULE 3: RCTA** | Triangular Attention | Tri-modal fusion (Image⊗Clinical⊗Disease) | Verified features (512-dim) |
 | **Decoder** | DistilGPT2 | Report generation with beam search | Medical text report |
+
+**Color Legend:**
+- **Blue** = Visual Processing (PRO-FA)
+- **Purple** = Disease Classification (MIX-MLP)  
+- **Orange/Yellow** = Clinical Text Processing
+- **Red-Orange** = Triangular Attention (RCTA)
+- **Green** = Report Generation
 
 
 ---
