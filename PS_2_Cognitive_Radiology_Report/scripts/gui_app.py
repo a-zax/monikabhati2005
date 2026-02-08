@@ -6,9 +6,9 @@ import numpy as np
 from PIL import Image
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QLabel, QPushButton, QFileDialog, QTextEdit, QProgressBar, 
-                               QFrame, QSplitter, QMessageBox)
-from PySide6.QtCore import Qt, QThread, Signal, QSize
-from PySide6.QtGui import QPixmap, QImage, QFont, QIcon, QAction
+                               QFrame, QSplitter, QMessageBox, QGraphicsOpacityEffect)
+from PySide6.QtCore import Qt, QThread, Signal, QPropertyAnimation, QEasingCurve
+from PySide6.QtGui import QPixmap, QFont
 from transformers import AutoTokenizer
 
 # Add project root to path
@@ -17,65 +17,108 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from models.cognitive_model import CognitiveReportGenerator
 from models.dataset import get_transforms
 
-# --- Styling ---
-DARK_THEME = """
+# --- Professional Light Theme ---
+MODERN_THEME = """
 QMainWindow {
-    background-color: #1e1e1e;
-    color: #ffffff;
+    background-color: #f8fafc;
 }
 QWidget {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    font-family: 'Segoe UI', 'Roboto', sans-serif;
-    font-size: 14px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: #1e293b;
+}
+QFrame#Card {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+}
+QLabel#HeaderTitle {
+    color: #0f172a;
+    font-size: 24px;
+    font-weight: 800;
+    background: transparent;
+}
+QLabel#TeamLabel {
+    color: #2563eb;
+    font-size: 24px;
+    font-weight: 800;
+    background: transparent;
+}
+QLabel#SubHeader {
+    color: #64748b;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent;
+}
+QLabel#NormalText {
+    background: transparent;
+    color: #475569;
+    font-weight: 500;
 }
 QPushButton {
-    background-color: #0d47a1;
+    background-color: #2563eb;
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-weight: bold;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
 }
 QPushButton:hover {
-    background-color: #1565c0;
+    background-color: #1d4ed8;
 }
-QPushButton:pressed {
-    background-color: #0d47a1;
+QPushButton#Secondary {
+    background-color: white;
+    color: #334155;
+    border: 1px solid #e2e8f0;
 }
-QPushButton:disabled {
-    background-color: #424242;
-    color: #757575;
+QPushButton#Secondary:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+}
+QPushButton#Reset {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+}
+QPushButton#Reset:hover {
+    background-color: #fee2e2;
+    border-color: #f87171;
 }
 QTextEdit {
-    background-color: #2d2d2d;
-    border: 1px solid #3d3d3d;
-    border-radius: 5px;
-    padding: 10px;
-    color: #e0e0e0;
-    font-family: 'Consolas', 'Monaco', monospace;
-}
-QLabel {
-    color: #e0e0e0;
+    background-color: #fdfdfd;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 15px;
+    color: #334155;
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.8;
 }
 QProgressBar {
-    border: 1px solid #3d3d3d;
-    border-radius: 5px;
+    border: none;
+    border-radius: 6px;
     text-align: center;
-    background-color: #2d2d2d;
+    background-color: #f1f5f9;
+    height: 10px;
+    color: transparent; 
+}
+QProgressBar#LoaderProgress {
+    height: 40px;
+    border-radius: 8px;
+    background-color: #eff6ff;
 }
 QProgressBar::chunk {
-    background-color: #0d47a1;
-    border-radius: 4px;
-}
-QFrame#Separator {
-    background-color: #3d3d3d;
-    color: #3d3d3d;
+    border-radius: 6px;
+    background-color: #3b82f6;
 }
 """
 
 class ModelLoaderThread(QThread):
-    finished = Signal(object, object, object, object) # model, enc_tokenizer, dec_tokenizer, device
+    finished = Signal(object, object, object, object)
     error = Signal(str)
 
     def __init__(self, checkpoint_path):
@@ -86,8 +129,6 @@ class ModelLoaderThread(QThread):
         try:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             checkpoint = torch.load(self.checkpoint_path, map_location=device)
-            
-            # Assumptions about model config (should match training)
             model = CognitiveReportGenerator(
                 visual_encoder='vit_base_patch16_224',
                 text_encoder_name='distilbert-base-uncased',
@@ -98,12 +139,10 @@ class ModelLoaderThread(QThread):
             model.load_state_dict(checkpoint['model_state_dict'])
             model = model.to(device)
             model.eval()
-            
             enc_tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
             dec_tokenizer = AutoTokenizer.from_pretrained('distilgpt2')
             if dec_tokenizer.pad_token is None:
                 dec_tokenizer.pad_token = dec_tokenizer.eos_token
-                
             self.finished.emit(model, enc_tokenizer, dec_tokenizer, device)
         except Exception as e:
             self.error.emit(str(e))
@@ -122,15 +161,13 @@ class InferenceThread(QThread):
 
     def run(self):
         try:
-             # Load Image
             image = Image.open(self.image_path).convert('RGB')
             image_np = np.array(image)
             transform = get_transforms(is_train=False)
             augmented = transform(image=image_np)
             image_tensor = augmented['image'].unsqueeze(0).to(self.device)
 
-            # Context
-            indication_text = "Clinical indication: Routine check."
+            indication_text = "Clinical indication: Deep analysis requested."
             indication = self.enc_tokenizer(
                 indication_text, max_length=64, padding='max_length', truncation=True, return_tensors='pt'
             )
@@ -141,16 +178,13 @@ class InferenceThread(QThread):
                 generated_ids, disease_probs = self.model.generate(
                     image_tensor, indication_ids, indication_mask, max_length=256
                 )
-                
                 report = self.dec_tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-                
                 diseases = [
                     "No Finding", "Enlarged Cardiomediastinum", "Cardiomegaly", "Lung Opacity",
                     "Lung Lesion", "Edema", "Consolidation", "Pneumonia", "Atelectasis",
                     "Pneumothorax", "Pleural Effusion", "Pleural Other", "Fracture", "Support Devices"
                 ]
                 disease_dict = {d: p.item() for d, p in zip(diseases, disease_probs[0])}
-                
             self.finished.emit(report, disease_dict)
         except Exception as e:
             self.error.emit(str(e))
@@ -158,232 +192,290 @@ class InferenceThread(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Cognitive Radiology Assistant (BrainDead 2K26)")
-        self.resize(1200, 800)
-        self.setStyleSheet(DARK_THEME)
-        
-        # State
-        self.model = None
-        self.device = None
-        self.current_image_path = None
-        
+        self.setWindowTitle("Cognitive Radiology Assistant | Team monikabhati2005")
+        self.resize(1300, 900)
+        self.setStyleSheet(MODERN_THEME)
+        self.model, self.device, self.current_image_path = None, None, None
+        self._anims = []
         self.setup_ui()
         
     def setup_ui(self):
-        # Central Widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(40, 30, 40, 30)
+        main_layout.setSpacing(25)
 
-        # Header
-        header_layout = QHBoxLayout()
-        title_label = QLabel("Cognitive Radiology Report Generator")
-        title_label.setFont(QFont('Segoe UI', 18, QFont.Bold))
+        # --- Header Section ---
+        header_container = QWidget()
+        header_container.setStyleSheet("background: transparent;")
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(10)
+        
+        title_label = QLabel("Cognitive Radiology Assistant")
+        title_label.setObjectName("HeaderTitle")
         header_layout.addWidget(title_label)
+        
+        sep = QLabel("|")
+        sep.setStyleSheet("color: #cbd5e1; font-size: 24px; font-weight: 300;")
+        header_layout.addWidget(sep)
+        
+        team_name = QLabel("Team: monikabhati2005")
+        team_name.setObjectName("TeamLabel")
+        header_layout.addWidget(team_name)
+        
         header_layout.addStretch()
         
-        self.load_model_btn = QPushButton("Load Model Checkpoint")
+        self.reset_btn = QPushButton("Reset Analysis")
+        self.reset_btn.setObjectName("Reset")
+        self.reset_btn.setFixedWidth(130) # Fixed width as requested
+        self.reset_btn.clicked.connect(self.reset_ui)
+        header_layout.addWidget(self.reset_btn)
+        
+        # Loader Stack
+        self.loader_container = QWidget()
+        self.loader_layout = QHBoxLayout(self.loader_container)
+        self.loader_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.load_model_btn = QPushButton("Load Neural Weights")
+        self.load_model_btn.setObjectName("Secondary")
+        self.loader_layout.addWidget(self.load_model_btn)
+        
+        self.loader_progress = QProgressBar()
+        self.loader_progress.setObjectName("LoaderProgress")
+        self.loader_progress.setRange(0, 0)
+        self.loader_progress.setFixedWidth(200)
+        self.loader_progress.setVisible(False)
+        self.loader_layout.addWidget(self.loader_progress)
+        
         self.load_model_btn.clicked.connect(self.load_model_dialog)
-        header_layout.addWidget(self.load_model_btn)
+        header_layout.addWidget(self.loader_container)
         
-        main_layout.addLayout(header_layout)
-        
-        # Separator
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setObjectName("Separator")
-        main_layout.addWidget(line)
+        main_layout.addWidget(header_container)
 
-        # Splitter for Content
+        # --- No Global Progress needed anymore ---
+        # WorkArea (Splitter)
         splitter = QSplitter(Qt.Horizontal)
+        splitter.setHandleWidth(20)
         main_layout.addWidget(splitter)
         
-        # Left Panel: Image
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 10, 0)
+        # Left Panel (Scan Visualization)
+        left_card = QFrame()
+        left_card.setObjectName("Card")
+        left_layout = QVBoxLayout(left_card)
+        left_layout.setContentsMargins(25, 25, 25, 25)
+        left_layout.setSpacing(20)
         
-        self.image_label = QLabel("No Image Selected")
+        viz_header = QLabel("Image Visualization")
+        viz_header.setObjectName("SubHeader")
+        left_layout.addWidget(viz_header)
+        
+        self.image_label = QLabel("Ready for Scan Input")
+        self.image_label.setObjectName("NormalText")
         self.image_label.setAlignment(Qt.AlignCenter)
-        self.image_label.setStyleSheet("background-color: #252525; border-radius: 10px; border: 2px dashed #3d3d3d;")
-        self.image_label.setMinimumSize(400, 400)
+        self.image_label.setStyleSheet("background-color: #f1f5f9; border-radius: 16px; border: 2px dashed #cbd5e1; color: #94a3b8;")
+        self.image_label.setMinimumSize(450, 450)
         left_layout.addWidget(self.image_label)
         
-        self.load_image_btn = QPushButton("Select X-Ray Image")
+        self.load_image_btn = QPushButton("Pick X-Ray Source")
+        self.load_image_btn.setObjectName("Secondary")
         self.load_image_btn.clicked.connect(self.load_image_dialog)
         left_layout.addWidget(self.load_image_btn)
         
-        splitter.addWidget(left_panel)
+        splitter.addWidget(left_card)
         
-        # Right Panel: Report & Findings
-        right_panel = QWidget()
-        right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(10, 0, 0, 0)
+        # Right Panel (Insights)
+        right_card = QFrame()
+        right_card.setObjectName("Card")
+        right_layout = QVBoxLayout(right_card)
+        right_layout.setContentsMargins(25, 25, 25, 25)
+        right_layout.setSpacing(20)
         
-        # Report Section
-        right_layout.addWidget(QLabel("Generated Clinical Report:"))
+        res_header = QLabel("Diagnostic Summary")
+        res_header.setObjectName("SubHeader")
+        right_layout.addWidget(res_header)
+        
+        right_layout.addWidget(QLabel("AI Impression:", objectName="NormalText"))
         self.report_text = QTextEdit()
         self.report_text.setReadOnly(True)
-        self.report_text.setPlaceholderText("Report will appear here...")
+        self.report_text.setPlaceholderText("Waiting for scan triggers...")
         right_layout.addWidget(self.report_text)
         
-        # Findings Section
-        right_layout.addWidget(QLabel("Detected Findings (>50% Probability):"))
+        right_layout.addWidget(QLabel("Anomaly Analysis Probabilities:", objectName="NormalText"))
         self.findings_container = QWidget()
         self.findings_layout = QVBoxLayout(self.findings_container)
         self.findings_layout.setAlignment(Qt.AlignTop)
+        self.findings_layout.setSpacing(12)
+        self.findings_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.addWidget(self.findings_container)
         
-        splitter.addWidget(right_panel)
-        splitter.setSizes([500, 700])
+        splitter.addWidget(right_card)
+        splitter.setSizes([600, 680])
         
-        # Footer Action
-        self.generate_btn = QPushButton("GENERATE REPORT")
-        self.generate_btn.setFixedHeight(50)
-        self.generate_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #00c853; 
-                font-size: 16px;
-            }
-            QPushButton:hover { background-color: #00e676; }
-            QPushButton:disabled { background-color: #424242; }
-        """)
+        # --- Bottom Action ---
+        self.generate_btn = QPushButton("EXECUTE COMPLETE SCAN")
+        self.generate_btn.setFixedHeight(60)
         self.generate_btn.setEnabled(False)
         self.generate_btn.clicked.connect(self.start_generation)
         main_layout.addWidget(self.generate_btn)
         
         # Status Bar
-        self.status_bar = QLabel("Please load a model to begin.")
-        self.status_bar.setStyleSheet("color: #757575; font-style: italic;")
+        self.status_bar = QLabel("System Initialized | Team: monikabhati2005")
+        self.status_bar.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: 600;")
         main_layout.addWidget(self.status_bar)
 
-    def load_model_dialog(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select Checkpoint", "", "PyTorch Models (*.pth)")
-        if path:
-            self.load_model_btn.setEnabled(False)
-            self.status_bar.setText(f"Loading model from {os.path.basename(path)}... This may take a moment.")
-            self.loader_thread = ModelLoaderThread(path)
-            self.loader_thread.finished.connect(self.on_model_loaded)
-            self.loader_thread.error.connect(self.on_model_error)
-            self.loader_thread.start()
+    def fade_in(self, widget, duration=600):
+        effect = QGraphicsOpacityEffect()
+        widget.setGraphicsEffect(effect)
+        anim = QPropertyAnimation(effect, b"opacity")
+        anim.setDuration(duration)
+        anim.setStartValue(0)
+        anim.setEndValue(1)
+        anim.setEasingCurve(QEasingCurve.OutCubic)
+        anim.start()
+        self._anims.append(anim)
 
-    def on_model_loaded(self, model, enc_tok, dec_tok, device):
-        self.model = model
-        self.enc_tokenizer = enc_tok
-        self.dec_tokenizer = dec_tok
-        self.device = device
-        self.load_model_btn.setText("Model Loaded ✓")
-        self.status_bar.setText("Model loaded successfully. Ready to generate.")
+    def load_model_dialog(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Load Checkpoint", "", "PyTorch (*.pth)")
+        if path:
+            self.load_model_btn.setVisible(False)
+            self.loader_progress.setVisible(True)
+            self.status_bar.setText(f"Synchronizing Neural Weights: {os.path.basename(path)}...")
+            self.loader = ModelLoaderThread(path)
+            self.loader.finished.connect(self.on_model_loaded)
+            self.loader.error.connect(self.on_model_error)
+            self.loader.start()
+
+    def on_model_loaded(self, model, e_tok, d_tok, device):
+        self.model, self.enc_tokenizer, self.dec_tokenizer, self.device = model, e_tok, d_tok, device
+        self.loader_progress.setVisible(False)
+        self.load_model_btn.setVisible(True)
+        self.load_model_btn.setText("Backbone Active ✓")
+        self.load_model_btn.setEnabled(False) 
+        self.status_bar.setText("Neural Backbone Active. Ready for input.")
         self.check_ready()
 
     def on_model_error(self, err):
-        QMessageBox.critical(self, "Error", f"Failed to load model:\n{err}")
+        self.loader_progress.setVisible(False)
+        self.load_model_btn.setVisible(True)
         self.load_model_btn.setEnabled(True)
-        self.status_bar.setText("Error loading model.")
+        QMessageBox.critical(self, "System Error", f"Neural Synchronization Failed:\n{err}")
 
     def load_image_dialog(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Images (*.png *.jpg *.jpeg)")
+        path, _ = QFileDialog.getOpenFileName(self, "Source Image", "", "Images (*.png *.jpg *.jpeg)")
         if path:
             self.current_image_path = path
-            self.display_image(path)
+            pixmap = QPixmap(path)
+            self.image_label.setPixmap(pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.image_label.setStyleSheet("background-color: white; border-radius: 16px; border: 1px solid #e2e8f0;")
+            self.fade_in(self.image_label)
+            self.status_bar.setText(f"Scanning Source: {os.path.basename(path)}")
             self.check_ready()
 
-    def display_image(self, path):
-        pixmap = QPixmap(path)
-        scaled_pixmap = pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.image_label.setPixmap(scaled_pixmap)
-        self.status_bar.setText(f"Image selected: {os.path.basename(path)}")
+    def reset_ui(self):
+        self.current_image_path = None
+        self.image_label.setPixmap(QPixmap())
+        self.image_label.setText("Ready for Scan Input")
+        self.image_label.setStyleSheet("background-color: #f1f5f9; border-radius: 16px; border: 2px dashed #cbd5e1; color: #94a3b8;")
+        self.report_text.clear()
+        self.clear_findings()
+        self.generate_btn.setEnabled(False)
+        self.generate_btn.setText("EXECUTE COMPLETE SCAN")
+        self.status_bar.setText("System Reset. Pending new source input.")
 
     def check_ready(self):
-        if self.model and self.current_image_path:
-            self.generate_btn.setEnabled(True)
+        self.generate_btn.setEnabled(bool(self.model and self.current_image_path))
 
     def start_generation(self):
         self.generate_btn.setEnabled(False)
-        self.generate_btn.setText("GENERATING...")
+        self.generate_btn.setText("ANALYZING SCAN...")
+        self.loader_progress.setVisible(True) # Reuse this for scanning too
         self.report_text.clear()
         self.clear_findings()
-        self.status_bar.setText("Analyzing image and generating report...")
-        
-        self.inf_thread = InferenceThread(
-            self.model, self.current_image_path, self.enc_tokenizer, self.dec_tokenizer, self.device
-        )
-        self.inf_thread.finished.connect(self.on_generation_finished)
-        self.inf_thread.error.connect(self.on_generation_error)
-        self.inf_thread.start()
+        self.inf = InferenceThread(self.model, self.current_image_path, self.enc_tokenizer, self.dec_tokenizer, self.device)
+        self.inf.finished.connect(self.on_fin)
+        self.inf.error.connect(self.on_inf_error)
+        self.inf.start()
 
-    def on_generation_finished(self, report, disease_probs):
+    def on_fin(self, report, probs):
+        self.loader_progress.setVisible(False)
         self.generate_btn.setEnabled(True)
-        self.generate_btn.setText("GENERATE REPORT")
-        self.status_bar.setText("Generation complete.")
+        self.generate_btn.setText("EXECUTE COMPLETE SCAN")
         
-        # Typewriter effect (simulated by just setting text for now)
-        self.report_text.setText(report)
-        
-        # Display findings
-        self.display_findings(disease_probs)
+        # Post-process common model artifacts (like 'INDINGS' for 'FINDINGS')
+        processed_report = report.strip()
+        if processed_report.startswith("INDINGS:"):
+            processed_report = "F" + processed_report
+        elif "INDINGS:" in processed_report:
+            processed_report = processed_report.replace("INDINGS:", "FINDINGS:")
+            
+        self.report_text.setText(processed_report)
+        self.fade_in(self.report_text)
+        self.display_findings(probs)
+        self.status_bar.setText("Scan complete. Analysis results displayed.")
 
-    def on_generation_error(self, err):
-        QMessageBox.critical(self, "Error", f"Inference failed:\n{err}")
+    def on_inf_error(self, err):
+        self.loader_progress.setVisible(False)
         self.generate_btn.setEnabled(True)
-        self.generate_btn.setText("GENERATE REPORT")
-        self.status_bar.setText("Generation failed.")
+        self.generate_btn.setText("EXECUTE COMPLETE SCAN")
+        QMessageBox.critical(self, "Diagnostic Error", f"Inference pipeline failed:\n{err}")
 
     def clear_findings(self):
-        # Remove all widgets from findings layout
         while self.findings_layout.count():
             child = self.findings_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            if child.widget(): child.widget().deleteLater()
 
     def display_findings(self, probs):
         self.clear_findings()
+        sorted_findings = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+        found = False
         
-        has_findings = False
-        for disease, prob in probs.items():
+        for i, (disease, prob) in enumerate(sorted_findings):
             if prob > 0.5:
-                has_findings = True
+                found = True
+                row = QFrame()
+                row.setStyleSheet("background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9;")
+                l = QHBoxLayout(row)
+                l.setContentsMargins(15, 12, 15, 12)
                 
-                container = QWidget()
-                layout = QHBoxLayout(container)
-                layout.setContentsMargins(0, 0, 0, 0)
-                
-                label = QLabel(f"{disease}")
-                label.setFixedWidth(200)
+                txt = QLabel(f"{disease}")
+                txt.setStyleSheet("font-weight: 700; color: #334155; background: transparent;")
+                txt.setMinimumWidth(220) # Ensure label is not cut
                 
                 bar = QProgressBar()
                 bar.setRange(0, 100)
                 bar.setValue(int(prob * 100))
-                bar.setStyleSheet("""
-                    QProgressBar {
-                        border: 1px solid #3d3d3d;
-                        border-radius: 4px;
-                        text-align: right;
-                        padding-right: 5px;
-                        background: #2d2d2d;
-                    }
-                    QProgressBar::chunk {
-                        background-color: #ff5252;
-                    }
-                """)
-                if prob < 0.7:
-                    bar.setStyleSheet(bar.styleSheet().replace("#ff5252", "#ffa726")) # Orange for medium risk
                 
-                layout.addWidget(label)
-                layout.addWidget(bar)
+                # Professional dynamic coloring
+                b_color = "#3b82f6" 
+                if prob > 0.8: b_color = "#ef4444"
+                elif prob > 0.65: b_color = "#f59e0b"
                 
-                self.findings_layout.addWidget(container)
+                bar.setStyleSheet(f"QProgressBar::chunk {{ background: {b_color}; border-radius: 5px; }} QProgressBar {{ background: #e2e8f0; border: none; }}")
+                
+                val = QLabel(f"{prob*100:.1f}%")
+                val.setStyleSheet(f"font-weight: 800; color: {b_color}; background: transparent;")
+                val.setFixedWidth(60)
+                
+                l.addWidget(txt)
+                l.addWidget(bar)
+                l.addWidget(val)
+                
+                self.findings_layout.addWidget(row)
+                self.fade_in(row, duration=400 + (i*150))
         
-        if not has_findings:
-            label = QLabel("No significant abnormalities detected.")
-            label.setStyleSheet("color: #69f0ae; font-style: italic;")
-            self.findings_layout.addWidget(label)
+        if not found:
+            lbl = QLabel("No clinical anomalies identified within high confidence spectrum.")
+            lbl.setStyleSheet("color: #059669; font-style: italic; background: #ecfdf5; padding: 15px; border-radius: 10px; font-weight: 600;")
+            self.findings_layout.addWidget(lbl)
+            self.fade_in(lbl)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    # Global Font tweak
+    font = QFont("Inter")
+    app.setFont(font)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
