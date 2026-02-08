@@ -1,0 +1,41 @@
+Team Name: monikabhati2005
+Hackathon: BrainDead 2K26
+
+=== PROBLEM STATEMENT 1: ReelSense ===
+Repository: https://github.com/monikabhati2005/PS_1_ReelSense
+Report: BrainDead_Hackathon_Report.pdf
+Demo: Interactive console output with explainable recommendations
+
+Key Files:
+- src/reelsense/main.py: Complete execution pipeline
+- outputs/evaluation_results.csv: Performance metrics
+- outputs/visualizations/: EDA charts and metrics plots
+
+=== PROBLEM STATEMENT 2: Cognitive Radiology Assistant ===
+Repository: https://github.com/monikabhati2005/PS_2_Cognitive_Radiology_Report
+Model Checkpoint: [TO BE ADDED - Upload trained weights to Google Drive/Dropbox/Mega]
+Report: BrainDead_Hackathon_Report.pdf
+Demo Video: [TO BE ADDED - 2-minute screencast showing X-ray → Report generation]
+
+Key Files:
+- models/encoder.py: PRO-FA (Progressive Feature Alignment)
+- models/classifier.py: MIX-MLP (Multi-task Knowledge-Enhanced MLP)
+- models/attention.py: RCTA (Recursive Cognitive Triangular Attention)
+- models/cognitive_model.py: Complete integrated model
+- training/train.py: Training pipeline
+- scripts/gui_app.py: Interactive GUI demo application
+
+Implementation Notes:
+- All 3 mandatory modules (PRO-FA, MIX-MLP, RCTA) fully implemented
+- Training verified on P100 GPU (Kaggle environment)
+- GUI with advanced animations for professional demo
+- Evaluation framework ready for CheXpert F1, RadGraph F1, CIDEr metrics
+
+Next Steps for Submission:
+1. Upload trained model checkpoint to cloud storage
+2. Record 2-minute demo video showing:
+   - Loading X-ray image
+   - Model inference with visual feedback
+   - Generated diagnostic report display
+3. Update checkpoint link and video link in this file
+4. Push codebases to public GitHub repositories
