@@ -109,10 +109,27 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--checkpoint', type=str, required=True)
-    parser.add_argument('--image', type=str, required=True)
+    parser.add_argument('--image', type=str, default=None, help="Path to image. If None, picks a random one.")
+    parser.add_argument('--dataset_root', type=str, default='/kaggle/input', help="Root to search if no image provided")
     parser.add_argument('--visual_encoder', type=str, default='vit_base_patch16_224')
     parser.add_argument('--text_encoder', type=str, default='distilbert-base-uncased')
     parser.add_argument('--decoder', type=str, default='distilgpt2')
     
     args = parser.parse_args()
+    
+    if args.image is None:
+        print("No image provided. Searching for a sample image...")
+        import os
+        for root, dirs, files in os.walk(args.dataset_root):
+            for file in files:
+                if file.lower().endswith(('.jpg', '.png', '.jpeg')):
+                    args.image = os.path.join(root, file)
+                    print(f"Index found sample: {args.image}")
+                    break
+            if args.image: break
+            
+        if not args.image:
+            print("Error: Could not find any images to test.")
+            sys.exit(1)
+            
     main(args)
