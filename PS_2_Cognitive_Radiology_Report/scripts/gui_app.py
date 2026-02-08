@@ -267,7 +267,7 @@ class MainWindow(QMainWindow):
         sep.setStyleSheet("color: #cbd5e1; font-size: 24px; font-weight: 300;")
         header_layout.addWidget(sep)
         
-        team_name = QLabel("monikabhati2005")
+        team_name = QLabel("Team: monikabhati2005")
         team_name.setObjectName("TeamLabel")
         header_layout.addWidget(team_name)
         
@@ -325,7 +325,7 @@ class MainWindow(QMainWindow):
         # We will position this dynamically or use it as a subtle overlay
         # WorkArea (Splitter)
         splitter = QSplitter(Qt.Horizontal)
-        splitter.setHandleWidth(20)
+        splitter.setHandleWidth(5)
         main_layout.addWidget(splitter)
         
         # Left Panel (Scan Visualization)
