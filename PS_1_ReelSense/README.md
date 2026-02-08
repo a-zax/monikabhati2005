@@ -19,26 +19,38 @@ ReelSense is a hybrid movie recommendation system that balances **accuracy**, **
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart TD
-    A["📊 DATA PIPELINE<br/>MovieLens-20M → Temporal Split → Feature Engineering<br/>(Ratings, Movies, Tags) → (Train/Test) → (Genres, TF-IDF)"] --> B
+flowchart TB
+    A[DATA PIPELINE]
+    B[RECOMMENDATION MODELS]
+    C[HYBRID ENSEMBLE]
+    D[DIVERSITY OPTIMIZATION]
+    E[EXPLAINABILITY ENGINE]
+    F[EVALUATION METRICS]
     
-    B["🎯 RECOMMENDATION MODELS<br/>━━━━━━━━━━━━━━━━━━━━<br/>1. Popularity Baseline | Global rating count & avg<br/>2. User-Based CF (k=20) | Cosine similarity on users<br/>3. Item-Based CF (k=20) | Cosine similarity on items<br/>4. SVD (10 factors, 5 iter) | Matrix factorization (ALS)<br/>5. Content-Based Filtering | Genre + Tag TF-IDF cosine"] --> C
+    A -->|MovieLens-20M<br/>Temporal Split<br/>Feature Engineering| B
+    B -->|5 Algorithm Fusion<br/>Weighted Scores| C
+    C -->|MMR Algorithm<br/>λ=0.5| D
+    D -->|Natural Language<br/>Templates| E
+    E -->|11 Comprehensive<br/>Metrics| F
     
-    C["🔀 HYBRID ENSEMBLE (Weighted)<br/>Weights: [0.2, 0.25, 0.25, 0.25, 0.05] → Aggregated Scores"] --> D
-    
-    D["🎨 DIVERSITY OPTIMIZATION (MMR, λ=0.5)<br/>MMR = argmax[λ·Relevance - (1-λ)·max(Similarity to selected)]"] --> E
-    
-    E["💬 EXPLAINABILITY ENGINE<br/>Templates: Collaborative + Content + Popularity signals<br/>Output: 'Users like you enjoyed... [Genre overlap: Sci-Fi]'"] --> F
-    
-    F["📈 EVALUATION METRICS<br/>Ranking: Precision@K, Recall@K, NDCG@K, MAP@K<br/>Diversity: Intra-List, Genre, Catalog Coverage, Gini Index<br/>Novelty: Long-tail %, Novelty Score"]
-    
-    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style D fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    style E fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    style F fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style A fill:#2196F3,stroke:#1565C0,stroke-width:3px,color:#fff,font-size:16px
+    style B fill:#9C27B0,stroke:#6A1B9A,stroke-width:3px,color:#fff,font-size:16px
+    style C fill:#FF9800,stroke:#E65100,stroke-width:3px,color:#fff,font-size:16px
+    style D fill:#4CAF50,stroke:#2E7D32,stroke-width:3px,color:#fff,font-size:16px
+    style E fill:#E91E63,stroke:#AD1457,stroke-width:3px,color:#fff,font-size:16px
+    style F fill:#FFC107,stroke:#F57F17,stroke-width:3px,color:#000,font-size:16px
 ```
+
+**Pipeline Details:**
+
+| Stage | Component | Description |
+|-------|-----------|-------------|
+| **Data Pipeline** | MovieLens-20M | Ratings, Movies, Tags → Temporal Split → Feature Engineering |
+| **Models** | 5 Algorithms | Popularity, User-CF, Item-CF, SVD, Content-Based |
+| **Ensemble** | Weighted Fusion | Weights: [0.2, 0.25, 0.25, 0.25, 0.05] |
+| **Diversity** | MMR (λ=0.5) | Maximal Marginal Relevance optimization |
+| **Explainability** | NL Templates | Collaborative + Content + Popularity signals |
+| **Evaluation** | 11 Metrics | Ranking, Diversity, Novelty measures |
 
 
 ---
