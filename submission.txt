@@ -3,7 +3,7 @@ Hackathon: BrainDead 2K26
 
 Report: BrainDead_Team_monikabhati2005.pdf
 
-=== PROBLEM STATEMENT 1: ReelSense ===
+=== PROBLEM STATEMENT 1: ReelSense: Explainable Recommender System with Diversity Optimization ===
 
 Repository: https://github.com/a-zax/monikabhati2005/tree/main/PS_1_ReelSense
 
@@ -12,7 +12,7 @@ Key Files:
 - outputs/evaluation_results.csv: Performance metrics
 - outputs/visualizations/: EDA charts and metrics plots
 
-=== PROBLEM STATEMENT 2: Cognitive Radiology Assistant ===
+=== PROBLEM STATEMENT 2: Cognitive Radiology Report Generation ===
 
 Repository: https://github.com/a-zax/monikabhati2005/tree/main/PS_2_Cognitive_Radiology_Report
 
