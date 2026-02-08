@@ -33,13 +33,14 @@ flowchart TB
     D -->|Natural Language<br/>Templates| E
     E -->|11 Comprehensive<br/>Metrics| F
     
-    style A fill:#2196F3,stroke:#1565C0,stroke-width:3px,color:#fff,font-size:16px
-    style B fill:#9C27B0,stroke:#6A1B9A,stroke-width:3px,color:#fff,font-size:16px
-    style C fill:#FF9800,stroke:#E65100,stroke-width:3px,color:#fff,font-size:16px
-    style D fill:#4CAF50,stroke:#2E7D32,stroke-width:3px,color:#fff,font-size:16px
-    style E fill:#E91E63,stroke:#AD1457,stroke-width:3px,color:#fff,font-size:16px
-    style F fill:#FFC107,stroke:#F57F17,stroke-width:3px,color:#000,font-size:16px
+    style A fill:#1976D2,stroke:#0D47A1,stroke-width:3px,color:#fff
+    style B fill:#7B1FA2,stroke:#4A148C,stroke-width:4px,color:#fff
+    style C fill:#F57C00,stroke:#E65100,stroke-width:3px,color:#fff
+    style D fill:#388E3C,stroke:#1B5E20,stroke-width:3px,color:#fff
+    style E fill:#C2185B,stroke:#880E4F,stroke-width:3px,color:#fff
+    style F fill:#F9A825,stroke:#F57F17,stroke-width:3px,color:#000
 ```
+
 
 **Pipeline Details:**
 
