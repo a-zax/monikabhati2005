@@ -43,27 +43,28 @@ flowchart LR
     L --> M[Report Generator<br/>DistilGPT2]
     M --> N[Medical Report<br/>FINDINGS + IMPRESSION]
     
-    style A fill:#E8F4F8,stroke:#0277BD,stroke-width:2px,color:#fff
-    style B fill:#B3E5FC,stroke:#01579B,stroke-width:3px,color:#fff
-    style C1 fill:#B3E5FC,stroke:#01579B,stroke-width:2px,color:#fff
-    style C2 fill:#B3E5FC,stroke:#01579B,stroke-width:2px,color:#fff
-    style C3 fill:#B3E5FC,stroke:#01579B,stroke-width:2px,color:#fff
+    style A fill:#0277BD,stroke:#01579B,stroke-width:3px,color:#fff
+    style B fill:#0277BD,stroke:#01579B,stroke-width:4px,color:#fff
+    style C1 fill:#0288D1,stroke:#01579B,stroke-width:2px,color:#fff
+    style C2 fill:#0288D1,stroke:#01579B,stroke-width:2px,color:#fff
+    style C3 fill:#0288D1,stroke:#01579B,stroke-width:2px,color:#fff
     
-    style D fill:#E1BEE7,stroke:#6A1B9A,stroke-width:3px,color:#fff
-    style E fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px,color:#fff
+    style D fill:#7B1FA2,stroke:#4A148C,stroke-width:4px,color:#fff
+    style E fill:#8E24AA,stroke:#4A148C,stroke-width:2px,color:#fff
     
-    style F fill:#FFE0B2,stroke:#E65100,stroke-width:2px,color:#fff
-    style G fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#fff
-    style H fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#fff
-    style I fill:#FFE0B2,stroke:#E65100,stroke-width:2px,color:#fff
-    style J fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px,color:#fff
+    style F fill:#EF6C00,stroke:#BF360C,stroke-width:2px,color:#fff
+    style G fill:#F9A825,stroke:#F57F17,stroke-width:3px,color:#fff
+    style H fill:#F9A825,stroke:#F57F17,stroke-width:2px,color:#fff
+    style I fill:#EF6C00,stroke:#BF360C,stroke-width:2px,color:#fff
+    style J fill:#8E24AA,stroke:#4A148C,stroke-width:2px,color:#fff
     
-    style K fill:#FFCCBC,stroke:#D84315,stroke-width:4px,color:#fff
-    style L fill:#FFCCBC,stroke:#D84315,stroke-width:2px,color:#fff
+    style K fill:#D84315,stroke:#BF360C,stroke-width:5px,color:#fff
+    style L fill:#E64A19,stroke:#BF360C,stroke-width:2px,color:#fff
     
-    style M fill:#C8E6C9,stroke:#2E7D32,stroke-width:3px,color:#fff
-    style N fill:#A5D6A7,stroke:#1B5E20,stroke-width:2px,color:#fff
+    style M fill:#388E3C,stroke:#1B5E20,stroke-width:4px,color:#fff
+    style N fill:#43A047,stroke:#1B5E20,stroke-width:2px,color:#fff
 ```
+
 
 **Architecture Overview:**
 
