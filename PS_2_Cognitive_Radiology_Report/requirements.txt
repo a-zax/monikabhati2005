@@ -16,3 +16,4 @@ kaggle
 radgraph
 kagglehub
 setuptools
+PySide6
