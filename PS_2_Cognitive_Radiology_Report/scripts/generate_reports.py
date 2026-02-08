@@ -10,6 +10,8 @@ import numpy as np
 import argparse
 import sys
 from pathlib import Path
+import matplotlib.pyplot as plt
+import textwrap
 
 # Add project root
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -30,7 +32,7 @@ def generate_report(model, image_path, enc_tokenizer, dec_tokenizer, device, max
         image_tensor = augmented['image'].unsqueeze(0).to(device) # [1, 3, 224, 224]
     except Exception as e:
         print(f"Error loading image: {e}")
-        return None
+        return None, None
 
     # Dummy indication (clinical context)
     # in a real app, user would provide this
@@ -65,6 +67,43 @@ def generate_report(model, image_path, enc_tokenizer, dec_tokenizer, device, max
         
     return report, disease_dict
 
+def visualize_result(image_path, report, disease_probs):
+    """
+    Creates and saves a visualization of the result.
+    """
+    try:
+        plt.figure(figsize=(12, 6))
+        
+        # 1. Image
+        img = Image.open(image_path).convert('RGB')
+        plt.subplot(1, 2, 1)
+        plt.imshow(img, cmap='gray')
+        plt.axis('off')
+        plt.title("Input X-Ray")
+        
+        # 2. Report Text
+        plt.subplot(1, 2, 2)
+        plt.axis('off')
+        plt.title("Generated Report")
+        
+        wrapper = textwrap.TextWrapper(width=40)
+        wrapped_text = wrapper.fill(report)
+        
+        # Add disease findings
+        findings = {d: p for d, p in disease_probs.items() if p > 0.5}
+        if findings:
+            wrapped_text += "\n\nDetected Findings:\n" + "\n".join([f"{d}: {p:.2f}" for d, p in findings.items()])
+            
+        plt.text(0.1, 0.9, wrapped_text, fontsize=12, va='top', family='monospace')
+        
+        output_path = "demo_result.png"
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        print(f"\n✓ Visual result saved to {output_path}")
+        print("You can view this image in the Kaggle output section or download it.")
+    except Exception as e:
+        print(f"Error creating visualization: {e}")
+
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
@@ -82,6 +121,7 @@ def main(args):
     )
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
+    model.eval()
     
     enc_tokenizer = AutoTokenizer.from_pretrained(args.text_encoder)
     dec_tokenizer = AutoTokenizer.from_pretrained(args.decoder)
@@ -93,18 +133,25 @@ def main(args):
     print(f"Generating report for {args.image}...")
     report, disease_probs = generate_report(model, args.image, enc_tokenizer, dec_tokenizer, device)
     
+    if report is None:
+        print("Failed to generate report.")
+        return
+
     print("\n" + "="*50)
     print("GENERATED REPORT")
     print("="*50)
     print(report)
     print("="*50)
     
-    print("\nDisease Probabilities:")
+    print(f"\nDisease Probabilities:")
     for d, p in disease_probs.items():
         if p > 0.5:
              print(f"{d}: {p:.4f} (*)")
         else:
              print(f"{d}: {p:.4f}")
+
+    # Create visualization
+    visualize_result(args.image, report, disease_probs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
