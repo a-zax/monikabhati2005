@@ -9,8 +9,8 @@
 - **Monika Bhati**  
   GitHub: https://github.com/MonikaBuilds
 
-- **A-Zax**  
-  GitHub: https://github.com/a-za
+- **Aryan Shukla**  
+  GitHub: https://github.com/a-zax
   
 
 ## 🚀 Final Submission Summary
